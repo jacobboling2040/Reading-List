@@ -8,3 +8,9 @@ node_modules/
 build/
 test-results/
 playwright-report/
+.env.*
+!.env.example
+!.env.test
+.output
+vite.config.ts.timestamp-*
+.DS_Store
