@@ -110,7 +110,10 @@ export async function addManualBook(
 
 export async function getBook(db: Db, id: number): Promise<Book | null> {
 	const row = await db.select().from(books).where(eq(books.id, id)).get();
-	if (!row) return null;
+	return row ? rowToBook(row) : null;
+}
+
+export function rowToBook(row: typeof books.$inferSelect): Book {
 	return {
 		id: row.id,
 		olWorkId: row.olWorkId,
