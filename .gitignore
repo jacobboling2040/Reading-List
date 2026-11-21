@@ -1,0 +1,10 @@
+node_modules/
+.superpowers/
+*.db
+*.db-*
+.env
+.svelte-kit/
+.vercel/
+build/
+test-results/
+playwright-report/
