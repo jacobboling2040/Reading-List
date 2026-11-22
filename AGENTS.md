@@ -60,6 +60,7 @@ docs/superpowers/          design specs and implementation plans (dated)
 ## Conventions
 
 **Server code**
+
 - Domain logic lives in `src/lib/server/*.ts` as functions whose first argument is a `Db`
   (`setShelf(db, userId, bookId, status)`). Route files stay thin: parse input, call the domain
   function, return data. This keeps logic unit-testable against `createTestDb()`.
@@ -84,6 +85,7 @@ docs/superpowers/          design specs and implementation plans (dated)
   remote Turso. Delete dependent rows explicitly.
 
 **UI**
+
 - Pages must work with JavaScript off: forms are real `<form method="POST">` actions and navigation
   is real links. Enhance on top.
 - Use `use:pending` (from `src/lib/pending.ts`) instead of `use:enhance` so the submit button shows a
@@ -96,7 +98,7 @@ docs/superpowers/          design specs and implementation plans (dated)
 - Theme is applied server-side from cookies so there is no flash; don't move it to client-only code.
 
 **Formatting**: Prettier settings in `.prettierrc` (tabs, single quotes, no trailing commas, width
-100). Comments explain *why*, not what.
+100). Comments explain _why_, not what.
 
 ## Database changes
 
