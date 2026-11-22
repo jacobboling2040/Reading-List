@@ -36,6 +36,11 @@ Only two environment variables (see `.env.example`):
 - `TURSO_DATABASE_URL` : database URL (`file:local.db` locally, `libsql://...` on Turso)
 - `TURSO_AUTH_TOKEN` : Turso auth token (empty for local files)
 
+A `.env` file in the project root is picked up by `npm run dev`, `npm run db:migrate` and
+`npm run create-admin` (the latter two use `tsx --env-file-if-exists=.env`, which needs Node 22.9 or
+newer). Variables already set in your shell take precedence over `.env`. On Vercel the app refuses to
+start without `TURSO_DATABASE_URL` rather than falling back to a local file.
+
 ## Turso setup
 
 ```sh
@@ -56,7 +61,9 @@ npm run create-admin -- <username> "<Display Name>"
 ## Deploying to Vercel (for later, not done yet)
 
 1. Push the repo and import it in Vercel.
-2. Set the environment variables `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`.
+2. Set the environment variables `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`, and scope them to
+   **Production only** (untick Preview and Development), so Preview deployments never touch the
+   production database.
 3. Use the Node 22 runtime (the adapter is configured for `nodejs22.x`).
 4. Deploy, then sign in with the admin account created above.
 
