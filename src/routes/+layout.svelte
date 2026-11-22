@@ -2,6 +2,7 @@
 	import '../app.css';
 	import favicon from '#lib/assets/favicon.svg';
 	import Sidebar from '../lib/components/Sidebar.svelte';
+	import ThemeToggle from '../lib/components/ThemeToggle.svelte';
 	import { onNavigate } from '$app/navigation';
 	import type { LayoutProps } from './$types';
 
@@ -25,7 +26,9 @@
 </svelte:head>
 
 {#if data.user}
-	<Sidebar user={data.user} />
+	<Sidebar user={data.user}>
+		<ThemeToggle mode={data.theme.mode} scheme={data.theme.scheme} />
+	</Sidebar>
 {:else}
 	<p class="brand-solo" aria-hidden="true">Reading List</p>
 {/if}

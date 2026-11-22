@@ -35,3 +35,21 @@ test.describe('without JavaScript', () => {
 		await expect(page.locator('html[data-theme="light"][data-scheme="plum"]')).toHaveCount(1);
 	});
 });
+
+test('sidebar toggle cycles mode', async ({ page }) => {
+	await signIn(page);
+	await page.goto('/');
+	await page.waitForLoadState('networkidle');
+	const html = page.locator('html');
+	await page.getByRole('button', { name: 'Menu' }).click();
+	await page.getByRole('button', { name: 'Theme: System' }).click();
+	await expect(html).toHaveAttribute('data-theme', 'light');
+	const toggle = page.getByRole('button', { name: 'Theme: Light' });
+	await expect(toggle).toBeVisible();
+	await toggle.click();
+	await expect(html).toHaveAttribute('data-theme', 'dark');
+	await expect(page.getByRole('button', { name: 'Theme: Dark' })).toBeVisible();
+	await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
+	await page.reload();
+	await expect(html).toHaveAttribute('data-theme', 'dark');
+});
