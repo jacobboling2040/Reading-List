@@ -67,9 +67,10 @@ npm run create-admin -- <username> "<Display Name>"
 ## Deploying to Vercel (for later, not done yet)
 
 1. Push the repo and import it in Vercel.
-2. Set the environment variables `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`, and scope them to
-   **Production only** (untick Preview and Development), so Preview deployments never touch the
-   production database.
+2. Set the environment variables `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` for **Production and
+   Preview** (not Development). Preview deployments share the production database, so anything
+   done on a preview (sign-ins, shelves, reviews) is real data. Without these on Preview, every
+   preview request returns a 500, because the app refuses to start on Vercel without a database.
 3. Use the Node 22 runtime (the adapter is configured for `nodejs22.x`).
 4. Deploy, then sign in with the admin account created above.
 
