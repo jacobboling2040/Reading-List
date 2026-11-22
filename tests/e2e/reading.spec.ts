@@ -103,6 +103,65 @@ test('adding from search shelves the book and stays on search', async ({ page })
 	await expect(result.getByText('On your Reading shelf')).toBeVisible();
 });
 
+test('search updates as you type', async ({ page }) => {
+	const me = await newMember('Typer');
+	await logIn(page, me.username);
+	await page.goto('/search');
+	await page.waitForLoadState('networkidle');
+	const box = page.getByRole('searchbox', { name: 'Find a book' });
+	await box.pressSequentially('earthsea');
+	await expect(page.getByRole('heading', { name: 'A Wizard of Earthsea' })).toBeVisible({ timeout: 3000 });
+	await expect(page).toHaveURL(/\/search\?q=earthsea$/);
+	await expect(box).toBeFocused();
+});
+
+test('a pending search does not hijack navigating away', async ({ page }) => {
+	const me = await newMember('Leaver');
+	await logIn(page, me.username);
+	// A fake clock holds the 300ms debounce so the navigation always lands first.
+	await page.clock.install();
+	await page.goto('/search');
+	await page.waitForLoadState('networkidle');
+	await page.clock.pauseAt(new Date(Date.now() + 60_000));
+	await page.getByRole('searchbox', { name: 'Find a book' }).pressSequentially('ea');
+	await page.getByRole('button', { name: 'Menu' }).click();
+	await page.getByRole('link', { name: 'Shelves' }).first().click();
+	// The paused clock also stalls SvelteKit's navigation, so tick in small steps (under the
+	// 300ms debounce in total) until it lands.
+	for (let i = 0; i < 25 && !page.url().endsWith('/shelves'); i++) {
+		await page.clock.runFor(10);
+		await page.waitForTimeout(20);
+	}
+	await expect(page).toHaveURL(/\/shelves$/);
+	await page.clock.runFor(600);
+	await expect(page).toHaveURL(/\/shelves$/);
+});
+
+test('stale search responses never replace newer results', async ({ page }) => {
+	const me = await newMember('Stale');
+	await logIn(page, me.username);
+	await page.goto('/search');
+	await page.waitForLoadState('networkidle');
+	let release!: () => void;
+	const released = new Promise<void>((r) => (release = r));
+	await page.route('**/search/__data.json?*q=outage*', async (route) => {
+		await released;
+		await route.continue().catch(() => {});
+	});
+	const box = page.getByRole('searchbox', { name: 'Find a book' });
+	await box.pressSequentially('outage');
+	await page.waitForTimeout(400);
+	await box.fill('');
+	await box.pressSequentially('earthsea');
+	await expect(page.getByRole('heading', { name: 'A Wizard of Earthsea' })).toBeVisible();
+	release();
+	await page.waitForTimeout(500);
+	await expect(page.getByRole('heading', { name: 'A Wizard of Earthsea' })).toBeVisible();
+	await expect(page.getByRole('alert').filter({ hasText: 'unavailable' })).toHaveCount(0);
+	await expect(box).toHaveValue('earthsea');
+	await expect(page).toHaveURL(/q=earthsea$/);
+});
+
 test('search outage shows manual-add message', async ({ page }) => {
 	const me = await newMember('Outage');
 	await logIn(page, me.username);
