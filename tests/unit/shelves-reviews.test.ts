@@ -119,4 +119,32 @@ describe('reviews', () => {
 		await deleteReview(db, u1, b1);
 		expect(await listUserReviews(db, u1)).toHaveLength(0);
 	});
+
+	it('deleteReview leaves the shelf entry', async () => {
+		await saveReview(db, u1, b1, { rating: 5 });
+		await deleteReview(db, u1, b1);
+		expect(await getShelfStatus(db, u1, b1)).toBe('finished');
+	});
+
+	it('listUserReviews respects limit', async () => {
+		await saveReview(db, u1, b1, { rating: 5 }, 1);
+		await saveReview(db, u1, b2, { rating: 4 }, 2);
+		const l = await listUserReviews(db, u1, 1);
+		expect(l).toHaveLength(1);
+		expect(l[0].book.title).toBe('Two');
+	});
+
+	it('caps body by code points', async () => {
+		await saveReview(db, u1, b1, { rating: 3, body: '😀'.repeat(5001) });
+		expect(Array.from((await listBookReviews(db, b1))[0].body!)).toHaveLength(5000);
+	});
+
+	it('rejects a missing book', async () => {
+		await expect(saveReview(db, u1, 9999, { rating: 3 })).rejects.toThrow(
+			'That book no longer exists.'
+		);
+		await expect(setShelf(db, u1, 9999, 'to_read')).rejects.toThrow(
+			'That book no longer exists.'
+		);
+	});
 });

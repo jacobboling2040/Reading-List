@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { Db } from './db/client';
 import { books, reviews, shelfEntries, users } from './db/schema';
-import { rowToBook, type Book } from './books';
+import { getBook, rowToBook, type Book } from './books';
 import { UserError } from './errors';
 
 export type ReviewView = {
@@ -25,7 +25,8 @@ export async function saveReview(
 	const { rating } = input;
 	if (!Number.isInteger(rating) || rating < 1 || rating > 5)
 		throw new UserError('Pick a rating from 1 to 5 stars.');
-	const body = (input.body ?? '').trim().slice(0, MAX_BODY) || null;
+	const body = Array.from((input.body ?? '').trim()).slice(0, MAX_BODY).join('') || null;
+	if (!(await getBook(db, bookId))) throw new UserError('That book no longer exists.');
 	await db.transaction(async (tx) => {
 		await tx
 			.insert(reviews)

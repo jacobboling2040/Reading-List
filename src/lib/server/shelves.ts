@@ -1,7 +1,8 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { Db } from './db/client';
 import { books, shelfEntries } from './db/schema';
-import { rowToBook, type Book } from './books';
+import { getBook, rowToBook, type Book } from './books';
+import { UserError } from './errors';
 
 export type ShelfStatus = 'to_read' | 'reading' | 'finished';
 
@@ -12,6 +13,7 @@ export async function setShelf(
 	status: ShelfStatus,
 	now = Date.now()
 ): Promise<void> {
+	if (!(await getBook(db, bookId))) throw new UserError('That book no longer exists.');
 	await db
 		.insert(shelfEntries)
 		.values({ userId, bookId, status, updatedAt: now })
