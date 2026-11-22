@@ -1,15 +1,62 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { SCHEMES, SCHEME_LABELS, THEME_MODES, applyThemePrefs, type Scheme, type ThemeMode } from '../../../lib/theme';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 	const user = $derived(data.user!);
+
+	const MODE_LABELS: Record<ThemeMode, string> = { system: 'System', light: 'Light', dark: 'Dark' };
+	// Each scheme's light look, so the choice previews itself in any mode.
+	const SWATCHES: Record<Scheme, { bg: string; accent: string }> = {
+		paper: { bg: '#f6f0e4', accent: '#8c3a22' },
+		sage: { bg: '#eef2e8', accent: '#3d6b3a' },
+		slate: { bg: '#eceff3', accent: '#2c5aa0' },
+		plum: { bg: '#f4eef3', accent: '#7a2e6e' }
+	};
+
+	// svelte-ignore state_referenced_locally
+	let mode = $state<ThemeMode>(data.theme.mode);
+	// svelte-ignore state_referenced_locally
+	let scheme = $state<Scheme>(data.theme.scheme);
+
+	// With JS the change applies at once and saves in the background; the button covers no-JS.
+	function changed() {
+		applyThemePrefs({ mode, scheme });
+		const body = new FormData();
+		body.set('mode', mode);
+		body.set('scheme', scheme);
+		fetch('/settings/theme', { method: 'POST', body, headers: { accept: 'application/json' } }).catch(() => {});
+	}
 </script>
 
 <svelte:head><title>Settings</title></svelte:head>
 
 <main class="page">
 	<h1>Settings</h1>
+
+	<section class="card">
+		<h2>Appearance</h2>
+		<form class="stack" method="POST" action="/settings/theme">
+			<fieldset>
+				<legend>Mode</legend>
+				{#each THEME_MODES as m (m)}
+					<label class="choice"><input type="radio" name="mode" value={m} bind:group={mode} onchange={changed} /> {MODE_LABELS[m]}</label>
+				{/each}
+			</fieldset>
+			<fieldset>
+				<legend>Colour scheme</legend>
+				{#each SCHEMES as s (s)}
+					<label class="choice">
+						<input type="radio" name="scheme" value={s} bind:group={scheme} onchange={changed} />
+						<span class="swatch" aria-hidden="true" style:background={SWATCHES[s].bg}><span style:background={SWATCHES[s].accent}></span></span>
+						{SCHEME_LABELS[s]}
+					</label>
+				{/each}
+			</fieldset>
+			<button>Save appearance</button>
+		</form>
+	</section>
 
 	<section class="card">
 		<h2>Display name</h2>
@@ -63,6 +110,39 @@
 <style>
 	section {
 		margin-bottom: var(--space-5);
+	}
+	fieldset {
+		border: 0;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2) var(--space-4);
+	}
+	legend {
+		font-weight: 600;
+		margin-bottom: var(--space-2);
+		padding: 0;
+	}
+	.choice {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-height: var(--tap);
+	}
+	.swatch {
+		display: inline-flex;
+		align-items: flex-end;
+		justify-content: flex-end;
+		width: 1.75rem;
+		height: 1.75rem;
+		border: 1px solid var(--color-line);
+		border-radius: var(--radius-s);
+		overflow: hidden;
+	}
+	.swatch span {
+		width: 50%;
+		height: 50%;
 	}
 	.danger {
 		border-color: var(--color-error);

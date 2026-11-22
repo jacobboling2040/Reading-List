@@ -5,6 +5,7 @@ declare global {
 		// interface Error {}
 		interface Locals {
 			user: import('./lib/server/auth/session').SessionUser | null;
+			theme: import('./lib/theme').ThemePrefs;
 		}
 		// interface PageData {}
 		// interface PageState {}
