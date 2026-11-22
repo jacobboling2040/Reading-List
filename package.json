@@ -15,7 +15,10 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "vitest run",
-		"db:generate": "drizzle-kit generate"
+		"test:e2e": "playwright test",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "tsx scripts/migrate.ts",
+		"create-admin": "tsx scripts/create-admin.ts"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.65.1",
