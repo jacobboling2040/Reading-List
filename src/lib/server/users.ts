@@ -118,6 +118,22 @@ export async function listInvites(db: Db, createdBy: number, now = Date.now()) {
 		.orderBy(invites.createdAt);
 }
 
+/** Every pending invite from any member, with the creator's display name (admin view). */
+export async function listAllPendingInvites(db: Db, now = Date.now()) {
+	return db
+		.select({
+			token: invites.token,
+			createdBy: invites.createdBy,
+			createdByName: users.displayName,
+			createdAt: invites.createdAt,
+			expiresAt: invites.expiresAt
+		})
+		.from(invites)
+		.innerJoin(users, eq(users.id, invites.createdBy))
+		.where(and(isNull(invites.usedAt), isNull(invites.revokedAt), gt(invites.expiresAt, now)))
+		.orderBy(invites.createdAt);
+}
+
 export async function revokeInvite(db: Db, token: string, byUserId: number): Promise<void> {
 	const [inv] = await db.select().from(invites).where(eq(invites.token, token));
 	if (!inv) return;

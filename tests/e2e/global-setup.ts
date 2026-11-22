@@ -6,7 +6,7 @@ import { migrate } from 'drizzle-orm/libsql/migrator';
 import * as schema from '../../src/lib/server/db/schema';
 import { E2E_PORT, OL_STUB_PORT } from './ports';
 import { startOpenLibraryStub } from './openlibrary-stub';
-import { createAdmin, E2E_DB_URL } from './seed';
+import { createAdmin, E2E_DB_FILE, E2E_DB_URL } from './seed';
 
 async function waitFor(url: string, ms = 60_000) {
 	const end = Date.now() + ms;
@@ -23,7 +23,7 @@ async function waitFor(url: string, ms = 60_000) {
 
 export default async function globalSetup() {
 	for (const suffix of ['', '-shm', '-wal', '-journal']) {
-		rmSync(`test-e2e.db${suffix}`, { force: true });
+		rmSync(`${E2E_DB_FILE}${suffix}`, { force: true });
 	}
 	const client = createClient({ url: E2E_DB_URL });
 	const db = drizzle(client, { schema });
