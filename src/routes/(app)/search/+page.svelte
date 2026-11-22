@@ -1,9 +1,15 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Cover from '../../../lib/components/Cover.svelte';
+	import { SHELF_LABELS } from '../../../lib/format';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
+	const shelves = Object.entries(SHELF_LABELS);
+
+	// Keep the chosen shelf in the select after an add instead of snapping back to the first option.
+	const keepChoice = () => async ({ update }: { update: (o: { reset: boolean }) => Promise<void> }) =>
+		update({ reset: false });
 </script>
 
 <svelte:head><title>{data.q ? `${data.q} · Search` : 'Search'}</title></svelte:head>
@@ -36,10 +42,29 @@
 								{r.authors.join(', ') || 'Unknown author'}
 								{#if r.year}<span>· {r.year}</span>{/if}
 							</p>
+							{#if form?.added?.olWorkId === r.olWorkId}
+								<p class="muted status" role="status">
+									Added to {SHELF_LABELS[form.added.status]}
+									· <a href="/books/{form.added.bookId}">View book</a>
+									{#if form.added.status === 'finished'}
+										· <a href="/books/{form.added.bookId}?review=1">Write a review</a>
+									{/if}
+								</p>
+							{:else if data.onShelf[r.olWorkId]}
+								<p class="muted status">On your {SHELF_LABELS[data.onShelf[r.olWorkId]]} shelf</p>
+							{/if}
 						</div>
-						<form method="POST" action="?/add" use:enhance>
+						<form method="POST" action="?q={encodeURIComponent(data.q)}&/add" use:enhance={keepChoice}>
 							<input type="hidden" name="q" value={data.q} />
 							<input type="hidden" name="olWorkId" value={r.olWorkId} />
+							<label>
+								<span class="visually-hidden">Shelf for {r.title}</span>
+								<select name="status" value={data.onShelf[r.olWorkId] ?? 'to_read'}>
+									{#each shelves as [value, label] (value)}
+										<option {value}>{label}</option>
+									{/each}
+								</select>
+							</label>
 							<button class="button-quiet">Add<span class="visually-hidden"> {r.title}</span></button>
 						</form>
 					</li>
@@ -54,6 +79,14 @@
 		<form class="stack" method="POST" action="?/manual" use:enhance>
 			<label>Title <input name="title" required maxlength="200" value={form?.title ?? ''} /></label>
 			<label>Author <input name="author" required maxlength="100" value={form?.author ?? ''} /></label>
+			<label>
+				Shelf
+				<select name="status">
+					{#each shelves as [value, label] (value)}
+						<option {value}>{label}</option>
+					{/each}
+				</select>
+			</label>
 			<div><button>Add book</button></div>
 		</form>
 	</section>
@@ -93,7 +126,15 @@
 		font-size: 0.95rem;
 	}
 	.result form {
+		display: grid;
+		gap: var(--space-2);
 		margin: 0;
+	}
+	.result select {
+		width: auto;
+	}
+	.result .status {
+		margin-top: var(--space-1);
 	}
 	.manual {
 		margin-top: var(--space-5);

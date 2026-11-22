@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createTestDb } from '../../src/lib/server/db/test-db';
 import type { Db } from '../../src/lib/server/db/client';
+import { books, users } from '../../src/lib/server/db/schema';
+import { getShelfStatus } from '../../src/lib/server/shelves';
 import {
+	addFromSearch,
 	cachedSearch,
 	normaliseQuery,
 	SEARCH_CACHE_TTL_MS
@@ -78,5 +81,56 @@ describe('cachedSearch', () => {
 		const f = countingStub();
 		expect(await cachedSearch(db, '   ', { fetchFn: asFetch(f) })).toEqual([]);
 		expect(f).not.toHaveBeenCalled();
+	});
+});
+
+describe('addFromSearch', () => {
+	async function user() {
+		const [u] = await db
+			.insert(users)
+			.values({ username: 'adder', displayName: 'Adder', passwordHash: 'x', createdAt: 0 })
+			.returning({ id: users.id });
+		return u.id;
+	}
+
+	it('shelves a cached result', async () => {
+		const u = await user();
+		await cachedSearch(db, 'le guin', { fetchFn: asFetch(countingStub()) });
+		const id = await addFromSearch(db, u, 'Le Guin', 'OL123W', 'to_read');
+		expect(await getShelfStatus(db, u, id)).toBe('to_read');
+	});
+
+	it('moves an already-shelved book', async () => {
+		const u = await user();
+		await cachedSearch(db, 'le guin', { fetchFn: asFetch(countingStub()) });
+		const id = await addFromSearch(db, u, 'le guin', 'OL123W', 'to_read');
+		expect(await addFromSearch(db, u, 'le guin', 'OL123W', 'reading')).toBe(id);
+		expect(await getShelfStatus(db, u, id)).toBe('reading');
+		expect(await db.select().from(books)).toHaveLength(1);
+	});
+
+	it('retries with fresh results when the cached ones lack the work', async () => {
+		const u = await user();
+		await cachedSearch(db, 'le guin', { fetchFn: asFetch(countingStub()) });
+		const fresh = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({ docs: [{ key: '/works/OL9W', title: 'New', author_name: ['A'] }] })
+				)
+		);
+		const id = await addFromSearch(db, u, 'le guin', 'OL9W', 'finished', {
+			fetchFn: fresh as unknown as typeof fetch
+		});
+		expect(await getShelfStatus(db, u, id)).toBe('finished');
+	});
+
+	it('refuses a work id not in the results', async () => {
+		const u = await user();
+		const f = asFetch(countingStub());
+		await cachedSearch(db, 'le guin', { fetchFn: f });
+		await expect(
+			addFromSearch(db, u, 'le guin', 'OL999W', 'to_read', { fetchFn: f })
+		).rejects.toThrow("isn't in the results");
+		expect(await db.select().from(books)).toHaveLength(0);
 	});
 });

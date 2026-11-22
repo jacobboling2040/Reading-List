@@ -79,20 +79,28 @@ test(`friend's 5★ appears on follower's For You with "why" line; Not for me re
 	expect(await withE2eDb((db) => getShelfStatus(db, me.id, liked.id))).toBe('to_read');
 });
 
-test('search result opens its book page', async ({ page }) => {
+test('adding from search shelves the book and stays on search', async ({ page }) => {
 	const me = await newMember('Searcher');
 	await logIn(page, me.username);
 	await page.goto('/search');
+	await page.waitForLoadState('networkidle');
 	await page.getByRole('searchbox', { name: 'Find a book' }).fill('earthsea');
 	await page.getByRole('button', { name: 'Search' }).click();
 	await expect(page).toHaveURL(/\/search\?q=earthsea$/);
+	await page.waitForLoadState('networkidle');
 	const result = page.getByRole('listitem').filter({ hasText: 'A Wizard of Earthsea' });
 	await expect(result.getByText('Ursula K. Le Guin')).toBeVisible();
+	await result.getByLabel('Shelf for A Wizard of Earthsea').selectOption({ label: 'Reading' });
 	await result.getByRole('button', { name: 'Add A Wizard of Earthsea' }).click();
+	await expect(result.getByText('Added to Reading')).toBeVisible();
+	await expect(page).toHaveURL(/\/search\?q=earthsea$/);
+	await result.getByRole('link', { name: 'View book' }).click();
 	await expect(page).toHaveURL(/\/books\/\d+$/);
 	await expect(page.getByRole('heading', { level: 1, name: 'A Wizard of Earthsea' })).toBeVisible();
 	await expect(page.getByText('1968')).toBeVisible();
 	await expect(page.getByText('No reviews yet.')).toBeVisible();
+	await page.goto('/search?q=earthsea');
+	await expect(result.getByText('On your Reading shelf')).toBeVisible();
 });
 
 test('search outage shows manual-add message', async ({ page }) => {
@@ -177,10 +185,12 @@ test('search, add, shelve as to-read appears on shelves', async ({ page }) => {
 	const me = await newMember('Shelver');
 	await logIn(page, me.username);
 	await page.goto('/search?q=le+guin');
+	await page.waitForLoadState('networkidle');
+	await page.getByLabel('Shelf for The Left Hand of Darkness').selectOption({ label: 'To-read' });
 	await page.getByRole('button', { name: 'Add The Left Hand of Darkness' }).click();
+	await page.getByRole('link', { name: 'View book' }).click();
 	await expect(page).toHaveURL(/\/books\/\d+$/);
 	const bookUrl = page.url();
-	await page.getByRole('button', { name: 'To-read' }).click();
 	await expect(page.getByRole('button', { name: 'To-read' })).toHaveAttribute('aria-pressed', 'true');
 
 	await page.getByRole('button', { name: 'Menu' }).click();

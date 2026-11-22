@@ -3,14 +3,15 @@ import { eq } from 'drizzle-orm';
 import { createTestDb } from '../../src/lib/server/db/test-db';
 import type { Db } from '../../src/lib/server/db/client';
 import { users, shelfEntries, reviews } from '../../src/lib/server/db/schema';
-import { addManualBook } from '../../src/lib/server/books';
+import { addManualBook, upsertOpenLibraryBook } from '../../src/lib/server/books';
 import {
 	setShelf,
 	removeFromShelf,
 	getShelfStatus,
 	listShelf,
 	listAllShelves,
-	shelfCounts
+	shelfCounts,
+	shelfStatusesForWorks
 } from '../../src/lib/server/shelves';
 import {
 	saveReview,
@@ -160,5 +161,16 @@ describe('reviews', () => {
 		await expect(setShelf(db, u1, 9999, 'to_read')).rejects.toThrow(
 			'That book no longer exists.'
 		);
+	});
+});
+
+describe('shelfStatusesForWorks', () => {
+	it("returns the member's status keyed by work id", async () => {
+		const r = { olWorkId: 'OL1W', title: 'T', authors: ['A'], coverId: null, year: null };
+		const id = await upsertOpenLibraryBook(db, r, u1);
+		await setShelf(db, u1, id, 'reading');
+		await setShelf(db, u2, id, 'finished');
+		expect(await shelfStatusesForWorks(db, u1, ['OL1W', 'OL2W'])).toEqual({ OL1W: 'reading' });
+		expect(await shelfStatusesForWorks(db, u1, [])).toEqual({});
 	});
 });
