@@ -86,6 +86,7 @@ test("friend's shelves are browsable from their profile", async ({ page }) => {
 test('Profile nav link opens your own profile', async ({ page }) => {
 	const me = await newMember('Self Viewer');
 	await logIn(page, me.username);
+	await page.getByRole('button', { name: 'Menu' }).click();
 	await page
 		.getByRole('navigation', { name: 'Main' })
 		.getByRole('link', { name: 'Profile' })

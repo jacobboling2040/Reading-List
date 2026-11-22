@@ -21,8 +21,10 @@ test('join with invite lands on /people, signed in', async ({ page }) => {
 	await page.getByLabel('Password').fill('a-long-password-1');
 	await page.getByRole('button', { name: 'Join' }).click();
 	await expect(page).toHaveURL(/\/people$/);
-	await expect(page.getByRole('navigation').getByRole('link', { name: 'Search' })).toBeVisible();
-	await expect(page.getByRole('navigation').getByRole('link', { name: 'Admin' })).toHaveCount(0);
+	await page.getByRole('button', { name: 'Menu' }).click();
+	const sidebar = page.getByRole('navigation', { name: 'Main' });
+	await expect(sidebar.getByRole('link', { name: 'Search' })).toBeVisible();
+	await expect(sidebar.getByRole('link', { name: 'Admin' })).toHaveCount(0);
 });
 
 test('reusing invite shows expired message', async ({ page, browser }) => {
@@ -53,6 +55,7 @@ test('admin logs in over http, sees Admin link, logs out', async ({ page }) => {
 	await page.getByLabel('Password').fill(ADMIN.password);
 	await page.getByRole('button', { name: 'Log in' }).click();
 	await expect(page).toHaveURL(/\/people$/);
+	await page.goto('/settings');
 	await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible();
 	await page.getByRole('button', { name: 'Log out' }).click();
 	await expect(page).toHaveURL(/\/login$/);
