@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 
@@ -47,8 +47,17 @@
 		}
 	}
 
-	afterNavigate(() => {
-		if (nav?.matches(':popover-open')) nav.hidePopover();
+	// Skip the initial hydration ('enter'): a Menu tap before hydration must stay open.
+	afterNavigate(({ type }) => {
+		if (type !== 'enter' && nav?.matches(':popover-open')) nav.hidePopover();
+	});
+
+	// A popover opened natively before hydration never fires `toggle` for us.
+	onMount(() => {
+		if (nav.matches(':popover-open')) {
+			expanded = true;
+			nav.querySelector<HTMLElement>('a')?.focus();
+		}
 	});
 </script>
 

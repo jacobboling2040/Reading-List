@@ -87,3 +87,12 @@ test('Settings shows Admin for the admin', async ({ page }) => {
 	await page.goto('/settings');
 	await expect(page.getByRole('link', { name: 'Admin' })).toBeVisible();
 });
+
+test('a Menu tap before hydration keeps the sidebar open', async ({ page }) => {
+	await logIn(page, await newMember());
+	await page.goto('/', { waitUntil: 'commit' });
+	await page.getByRole('button', { name: 'Menu' }).click();
+	await page.waitForLoadState('networkidle');
+	await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Menu', exact: true })).toHaveAttribute('aria-expanded', 'true');
+});
