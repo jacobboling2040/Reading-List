@@ -18,7 +18,7 @@ export default defineConfig(({ command, mode }) => {
 						filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 				},
 
-				adapter: adapter({ runtime: 'nodejs22.x' })
+				adapter: adapter({ runtime: 'nodejs22.x', regions: ['pdx1'] })
 			})
 		]
 	};
