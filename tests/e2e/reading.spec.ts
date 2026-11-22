@@ -118,12 +118,22 @@ test('search updates as you type', async ({ page }) => {
 test('a pending search does not hijack navigating away', async ({ page }) => {
 	const me = await newMember('Leaver');
 	await logIn(page, me.username);
+	// A fake clock holds the 300ms debounce so the navigation always lands first.
+	await page.clock.install();
 	await page.goto('/search');
 	await page.waitForLoadState('networkidle');
+	await page.clock.pauseAt(new Date(Date.now() + 60_000));
 	await page.getByRole('searchbox', { name: 'Find a book' }).pressSequentially('ea');
 	await page.getByRole('button', { name: 'Menu' }).click();
 	await page.getByRole('link', { name: 'Shelves' }).first().click();
-	await page.waitForTimeout(600);
+	// The paused clock also stalls SvelteKit's navigation, so tick in small steps (under the
+	// 300ms debounce in total) until it lands.
+	for (let i = 0; i < 25 && !page.url().endsWith('/shelves'); i++) {
+		await page.clock.runFor(10);
+		await page.waitForTimeout(20);
+	}
+	await expect(page).toHaveURL(/\/shelves$/);
+	await page.clock.runFor(600);
 	await expect(page).toHaveURL(/\/shelves$/);
 });
 
