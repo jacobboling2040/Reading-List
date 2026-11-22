@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import { getDb } from '../../../lib/server/db/client';
-import { listShelf, removeFromShelf, setShelf, shelfCounts } from '../../../lib/server/shelves';
+import { listAllShelves, removeFromShelf, setShelf } from '../../../lib/server/shelves';
 import { formId, formStatus, isShelfStatus, withUserErrors } from '../../../lib/server/form-input';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -8,11 +8,13 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const db = getDb();
 	const param = url.searchParams.get('tab');
 	const tab = isShelfStatus(param) ? param : 'to_read';
-	const [books, counts] = await Promise.all([
-		listShelf(db, locals.user!.id, tab),
-		shelfCounts(db, locals.user!.id)
-	]);
-	return { tab, books, counts };
+	const shelves = await listAllShelves(db, locals.user!.id);
+	const counts = {
+		to_read: shelves.to_read.length,
+		reading: shelves.reading.length,
+		finished: shelves.finished.length
+	};
+	return { tab, shelves, counts };
 };
 
 const NO_BOOK = 'That book no longer exists.';

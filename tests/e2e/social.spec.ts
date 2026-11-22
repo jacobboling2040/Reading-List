@@ -53,8 +53,8 @@ test('profile shows shelves and recent reviews, and no follower counts', async (
 	await page.goto(`/u/${them.username}`);
 	await expect(page.getByRole('heading', { name: 'Reading now' })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Profile Book' })).toBeVisible();
-	await expect(page.getByText('To-read (0)')).toBeVisible();
-	await expect(page.getByText('Finished (0)')).toBeVisible();
+	await expect(page.getByRole('link', { name: 'To-read 0' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Finished 0' })).toBeVisible();
 	await expect(page.locator('body')).not.toContainText(/follower/i);
 	expect((await page.request.get('/u/nobody_here')).status()).toBe(404);
 });
@@ -70,11 +70,11 @@ test("friend's shelves are browsable from their profile", async ({ page }) => {
 	});
 	await logIn(page, me.username);
 	await page.goto(`/u/${them.username}`);
-	await page.getByRole('link', { name: 'To-read (1)' }).click();
+	await page.getByRole('link', { name: 'To-read 1' }).click();
 	await expect(page).toHaveURL(/\?tab=to_read$/);
 	await expect(page.getByRole('link', { name: 'Queued Book' })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'Done Book' })).toHaveCount(0);
-	await page.getByRole('link', { name: 'Finished (1)' }).click();
+	await page.getByRole('link', { name: 'Finished 1' }).click();
 	await expect(page.getByRole('link', { name: 'Done Book' })).toBeVisible();
 	await expect(page.locator('body')).not.toContainText(/follower/i);
 

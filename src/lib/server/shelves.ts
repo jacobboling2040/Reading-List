@@ -56,6 +56,25 @@ export async function listShelf(
 	return rows.map((r) => ({ ...rowToBook(r.book), updatedAt: r.updatedAt }));
 }
 
+export async function listAllShelves(
+	db: Db,
+	userId: number
+): Promise<Record<ShelfStatus, (Book & { updatedAt: number })[]>> {
+	const rows = await db
+		.select({ book: books, updatedAt: shelfEntries.updatedAt, status: shelfEntries.status })
+		.from(shelfEntries)
+		.innerJoin(books, eq(books.id, shelfEntries.bookId))
+		.where(eq(shelfEntries.userId, userId))
+		.orderBy(desc(shelfEntries.updatedAt), desc(books.id));
+	const shelves: Record<ShelfStatus, (Book & { updatedAt: number })[]> = {
+		to_read: [],
+		reading: [],
+		finished: []
+	};
+	for (const r of rows) shelves[r.status].push({ ...rowToBook(r.book), updatedAt: r.updatedAt });
+	return shelves;
+}
+
 export async function shelfCounts(db: Db, userId: number): Promise<Record<ShelfStatus, number>> {
 	const rows = await db
 		.select({ status: shelfEntries.status, n: sql<number>`count(*)` })

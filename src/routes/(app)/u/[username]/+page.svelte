@@ -1,12 +1,22 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { SHELF_LABELS } from '../../../../lib/format';
+	import { fade } from 'svelte/transition';
 	import BookCard from '../../../../lib/components/BookCard.svelte';
+	import ShelfTabs from '../../../../lib/components/ShelfTabs.svelte';
 	import Stars from '../../../../lib/components/Stars.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 	const p = $derived(data.profile);
-	const titles = { to_read: 'To-read', reading: 'Reading', finished: 'Finished' } as const;
+	let tab = $state(data.tab);
+	$effect(() => {
+		tab = data.tab;
+	});
+	const fadeMs = () =>
+		typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+			? 0
+			: 120;
 </script>
 
 <svelte:head><title>{p.displayName}</title></svelte:head>
@@ -29,32 +39,30 @@
 	</header>
 	{#if form?.message}<p class="callout error" role="alert">{form.message}</p>{/if}
 
-	<nav class="counts" aria-label="Shelves">
-		<a href="?tab=to_read" aria-current={data.tab === 'to_read' ? 'page' : undefined}
-			>To-read ({p.counts.to_read})</a
-		>
-		<a href="?tab=reading" aria-current={data.tab === 'reading' ? 'page' : undefined}
-			>Reading ({p.counts.reading})</a
-		>
-		<a href="?tab=finished" aria-current={data.tab === 'finished' ? 'page' : undefined}
-			>Finished ({p.counts.finished})</a
-		>
-	</nav>
+	<ShelfTabs
+		counts={p.counts}
+		active={tab}
+		href={(s) => `?tab=${s}`}
+		onselect={(s) => (tab = s)}
+		label="Shelves"
+	/>
 
-	{#if data.tab}
-		<section>
-			<h2>{titles[data.tab]}</h2>
-			{#if data.shelf.length === 0}
+	{#if tab}
+		{#key tab}
+		<section in:fade={{ duration: fadeMs() }}>
+			<h2>{SHELF_LABELS[tab]}</h2>
+			{#if data.shelves[tab].length === 0}
 				<p class="muted">Nothing here yet.</p>
 			{:else}
 				<ul class="list">
-					{#each data.shelf as book (book.id)}
+					{#each data.shelves[tab] as book (book.id)}
 						<li><BookCard {book} size="sm" /></li>
 					{/each}
 				</ul>
 			{/if}
 			<p><a href="/u/{p.username}">Back to profile</a></p>
 		</section>
+		{/key}
 	{:else}
 		<section>
 			<h2>Reading now</h2>
@@ -100,23 +108,6 @@
 	}
 	.head form {
 		margin: 0;
-	}
-	.counts {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-5);
-		font-family: var(--font-serif);
-		font-size: 1.2rem;
-		font-weight: 600;
-		margin-bottom: var(--space-5);
-	}
-	.counts a {
-		color: inherit;
-		text-decoration: none;
-		border-bottom: 2px solid transparent;
-	}
-	.counts a[aria-current='page'] {
-		border-bottom-color: var(--color-accent);
 	}
 	section {
 		margin-bottom: var(--space-5);

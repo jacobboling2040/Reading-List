@@ -8,7 +8,7 @@ import {
 	unfollow
 } from '../../../../lib/server/follows';
 import { isShelfStatus, withUserErrors } from '../../../../lib/server/form-input';
-import { listShelf } from '../../../../lib/server/shelves';
+import { listAllShelves } from '../../../../lib/server/shelves';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
@@ -24,7 +24,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		isSelf,
 		following: isSelf ? false : await isFollowing(db, me, profile.id),
 		tab,
-		shelf: tab ? await listShelf(db, profile.id, tab) : []
+		shelves: await listAllShelves(db, profile.id)
 	};
 };
 
