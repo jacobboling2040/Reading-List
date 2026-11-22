@@ -12,6 +12,7 @@ async function signIn(page: Page) {
 test('theme choice applies immediately and survives reload', async ({ page }) => {
 	await signIn(page);
 	await page.goto('/settings');
+	await page.waitForLoadState('networkidle');
 	const html = page.locator('html');
 	await page.getByLabel('Dark').check();
 	await page.getByLabel('Sage').check();
@@ -52,4 +53,20 @@ test('sidebar toggle cycles mode', async ({ page }) => {
 	await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
 	await page.reload();
 	await expect(html).toHaveAttribute('data-theme', 'dark');
+});
+
+test('sidebar toggle keeps a scheme picked in settings', async ({ page }) => {
+	await signIn(page);
+	await page.goto('/settings');
+	await page.waitForLoadState('networkidle');
+	const html = page.locator('html');
+	await page.getByLabel('Sage').check();
+	await expect(html).toHaveAttribute('data-scheme', 'sage');
+	await page.getByRole('button', { name: 'Menu' }).click();
+	await page.getByRole('button', { name: 'Theme: System' }).click();
+	await expect(html).toHaveAttribute('data-theme', 'light');
+	await expect(html).toHaveAttribute('data-scheme', 'sage');
+	await page.reload();
+	await expect(html).toHaveAttribute('data-theme', 'light');
+	await expect(html).toHaveAttribute('data-scheme', 'sage');
 });

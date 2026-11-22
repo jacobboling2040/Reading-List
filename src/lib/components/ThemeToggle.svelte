@@ -1,13 +1,28 @@
 <script lang="ts">
-	import { applyThemePrefs, nextMode, type Scheme, type ThemeMode } from '../theme';
+	import { SCHEMES, THEME_MODES, applyThemePrefs, nextMode, type Scheme, type ThemeMode } from '../theme';
 
-	let { mode: initial, scheme }: { mode: ThemeMode; scheme: Scheme } = $props();
+	let { mode: initialMode, scheme: initialScheme }: { mode: ThemeMode; scheme: Scheme } = $props();
 
 	const LABELS: Record<ThemeMode, string> = { system: 'System', light: 'Light', dark: 'Dark' };
 
 	// svelte-ignore state_referenced_locally
-	let mode = $state<ThemeMode>(initial);
+	let mode = $state<ThemeMode>(initialMode);
+	// svelte-ignore state_referenced_locally
+	let scheme = $state<Scheme>(initialScheme);
 	const next = $derived(nextMode(mode));
+
+	// The Settings picker can change the live theme without reloading this component, so follow <html>.
+	$effect(() => {
+		const root = document.documentElement;
+		const read = () => {
+			mode = THEME_MODES.find((m) => m === root.dataset.theme) ?? mode;
+			scheme = SCHEMES.find((s) => s === root.dataset.scheme) ?? scheme;
+		};
+		read();
+		const observer = new MutationObserver(read);
+		observer.observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-scheme'] });
+		return () => observer.disconnect();
+	});
 
 	// With JS the mode cycles in place and saves in the background; without it the form posts and redirects back.
 	function cycle(event: SubmitEvent) {
