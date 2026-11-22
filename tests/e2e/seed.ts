@@ -30,6 +30,8 @@ export async function createInviteToken(db: Db, createdBy: number): Promise<stri
 /** Run `fn` with a short-lived handle on the e2e database, closing it afterwards. */
 export async function withE2eDb<T>(fn: (db: Db) => Promise<T>): Promise<T> {
 	const db = openE2eDb();
+	// The dev server writes concurrently; wait instead of failing with SQLITE_BUSY.
+	await db.$client.execute('PRAGMA busy_timeout = 5000');
 	try {
 		return await fn(db);
 	} finally {

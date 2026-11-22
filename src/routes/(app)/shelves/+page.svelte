@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { pending } from '../../../lib/pending';
 	import { fade } from 'svelte/transition';
 	import BookCard from '../../../lib/components/BookCard.svelte';
@@ -8,15 +10,11 @@
 
 	let { data, form }: PageProps = $props();
 
-	let tab = $state(data.tab);
-	// Re-sync only when the server's tab changes; invalidation after a form action
-	// re-runs load with the original URL and must not undo a client-side tab switch.
-	let serverTab = data.tab;
-	$effect(() => {
-		if (data.tab !== serverTab) {
-			serverTab = data.tab;
-			tab = data.tab;
-		}
+	let tab = $state(untrack(() => data.tab));
+	// Re-sync on real navigations only. A form action re-runs load with the original URL
+	// (and reports type 'form'), which must not undo a client-side tab switch.
+	afterNavigate(({ type }) => {
+		if (type !== 'form') tab = data.tab;
 	});
 	const books = $derived(data.shelves[tab]);
 	const fadeMs = () =>

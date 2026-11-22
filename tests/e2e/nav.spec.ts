@@ -113,3 +113,16 @@ test('submitting shows a busy button until done', async ({ page }) => {
 	await expect(save).not.toHaveAttribute('aria-busy', 'true');
 	await expect(save).toBeEnabled();
 });
+
+test('a landing search does not close the sidebar', async ({ page }) => {
+	await logIn(page, await newMember());
+	await page.goto('/search');
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('searchbox', { name: 'Find a book' }).pressSequentially('menuprobe');
+	await page.getByRole('button', { name: 'Menu' }).click();
+	const sidebar = page.getByRole('navigation', { name: 'Main' });
+	await expect(sidebar).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'A Wizard of Earthsea' })).toBeVisible({ timeout: 5000 });
+	await expect(page).toHaveURL(/q=menuprobe$/);
+	await expect(sidebar).toBeVisible();
+});

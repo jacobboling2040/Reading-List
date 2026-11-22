@@ -70,3 +70,19 @@ test('sidebar toggle keeps a scheme picked in settings', async ({ page }) => {
 	await expect(html).toHaveAttribute('data-theme', 'light');
 	await expect(html).toHaveAttribute('data-scheme', 'sage');
 });
+
+test('settings picker follows the sidebar toggle', async ({ page }) => {
+	await signIn(page);
+	await page.goto('/settings');
+	await page.waitForLoadState('networkidle');
+	const html = page.locator('html');
+	await page.getByRole('button', { name: 'Menu' }).click();
+	await page.getByRole('button', { name: 'Theme: System' }).click();
+	await page.getByRole('button', { name: 'Theme: Light' }).click();
+	await expect(html).toHaveAttribute('data-theme', 'dark');
+	await expect(page.getByLabel('Dark')).toBeChecked();
+	await page.getByRole('button', { name: 'Close menu' }).click();
+	await page.getByLabel('Sage').check();
+	await expect(html).toHaveAttribute('data-theme', 'dark');
+	await expect(html).toHaveAttribute('data-scheme', 'sage');
+});

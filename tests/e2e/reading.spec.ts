@@ -354,3 +354,17 @@ test('reading pages fit a 360px screen without horizontal scroll', async ({ page
 		expect(overflow, `horizontal overflow on ${path}`).toBeLessThanOrEqual(0);
 	}
 });
+
+test('sidebar Shelves link resets the tab after a client tab switch', async ({ page }) => {
+	const me = await newMember('Resetter');
+	await logIn(page, me.username);
+	await page.goto('/shelves');
+	await page.waitForLoadState('networkidle');
+	const tabs = page.getByRole('navigation', { name: 'Shelves' });
+	await tabs.getByRole('link', { name: /Reading/ }).click();
+	await expect(tabs.getByRole('link', { name: /Reading/ })).toHaveAttribute('aria-current', 'page');
+	await page.getByRole('button', { name: 'Menu' }).click();
+	await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Shelves' }).click();
+	await expect(page).toHaveURL(/\/shelves$/);
+	await expect(tabs.getByRole('link', { name: /To-read/ })).toHaveAttribute('aria-current', 'page');
+});

@@ -26,6 +26,10 @@ export const POST: RequestHandler = async ({ request, cookies, locals, url }) =>
 	};
 	// Missing fields keep the current value; invalid ones fall back to the defaults.
 	const prefs = parseThemePrefs(field('mode') ?? locals.theme.mode, field('scheme') ?? locals.theme.scheme);
+	// The JS path already wrote both cookies in the browser; setting them here too would let
+	// out-of-order background saves leave a stale cookie.
+	if (request.headers.get('accept')?.includes('application/json')) return Response.json(prefs);
+
 	const opts = {
 		path: '/',
 		maxAge: THEME_COOKIE_MAX_AGE,
@@ -36,6 +40,5 @@ export const POST: RequestHandler = async ({ request, cookies, locals, url }) =>
 	cookies.set(THEME_COOKIE, prefs.mode, opts);
 	cookies.set(SCHEME_COOKIE, prefs.scheme, opts);
 
-	if (request.headers.get('accept')?.includes('application/json')) return Response.json(prefs);
 	redirect(303, backPath(request.headers.get('referer'), url.origin));
 };
