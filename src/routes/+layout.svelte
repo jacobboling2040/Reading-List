@@ -1,4 +1,5 @@
 <script lang="ts">
+	import '../app.css';
 	import favicon from '#lib/assets/favicon.svg';
 	import Nav from '../lib/components/Nav.svelte';
 	import type { LayoutProps } from './$types';
@@ -10,43 +11,20 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{#if data.user}<Nav user={data.user} />{/if}
+{#if data.user}
+	<Nav user={data.user} />
+{:else}
+	<p class="brand-solo" aria-hidden="true">Reading List</p>
+{/if}
 {@render children()}
 
 <style>
-	:global(body) {
-		margin: 0;
-		font-family: system-ui, sans-serif;
-		line-height: 1.5;
-	}
-	:global(.auth) {
-		max-width: 24rem;
-		margin: 2rem auto;
-		padding: 0 1rem;
-	}
-	:global(.auth form) {
-		display: grid;
-		gap: 1rem;
-	}
-	:global(.auth label) {
-		display: grid;
-		gap: 0.25rem;
-	}
-	:global(.auth input) {
-		font: inherit;
-		padding: 0.5rem;
-	}
-	:global(button) {
-		font: inherit;
-		padding: 0.5rem 1rem;
-	}
-	:global(.error) {
-		color: #b00020;
-	}
-	:global(.notice) {
-		color: #146c2e;
-	}
-	:global(.hint) {
-		color: #666;
+	.brand-solo {
+		margin: var(--space-6) 0 0;
+		text-align: center;
+		font-family: var(--font-serif);
+		font-style: italic;
+		font-size: 1.15rem;
+		color: var(--color-accent);
 	}
 </style>

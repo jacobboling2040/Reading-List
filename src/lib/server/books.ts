@@ -124,6 +124,4 @@ export function rowToBook(row: typeof books.$inferSelect): Book {
 	};
 }
 
-export function coverUrl(coverId: number | null, size: 'S' | 'M' | 'L'): string | null {
-	return coverId == null ? null : `https://covers.openlibrary.org/b/id/${coverId}-${size}.jpg`;
-}
+export { coverUrl } from '../cover';
