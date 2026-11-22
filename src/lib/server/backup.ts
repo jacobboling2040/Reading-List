@@ -1,3 +1,4 @@
+import type { Client } from "@libsql/client";
 import type { Db } from "./db/client";
 
 // Tables whose rows are transient; their schema is kept so a restore is complete.
@@ -21,7 +22,7 @@ function literal(v: unknown): string {
 
 /** A SQL script (schema plus INSERTs) that recreates every table except transient session data. */
 export async function dumpDatabase(db: Db): Promise<string> {
-  const client = db.$client;
+  const client = (db as Db & { $client: Client }).$client;
   const master = await client.execute(
     `SELECT name, sql, type FROM sqlite_master
 		 WHERE name NOT LIKE 'sqlite\\_%' ESCAPE '\\' AND name NOT LIKE '\\_\\_drizzle%' ESCAPE '\\'
