@@ -9,6 +9,7 @@ import {
 	removeFromShelf,
 	getShelfStatus,
 	listShelf,
+	listAllShelves,
 	shelfCounts
 } from '../../src/lib/server/shelves';
 import {
@@ -58,6 +59,19 @@ describe('shelves', () => {
 		expect(l[0].authors).toEqual(['Y']);
 		await removeFromShelf(db, u1, b2);
 		expect(await getShelfStatus(db, u1, b2)).toBeNull();
+	});
+
+	it('listAllShelves splits by status in updatedAt order', async () => {
+		const b3 = await addManualBook(db, { title: 'Three', author: 'Z' }, u1);
+		const other = await addManualBook(db, { title: 'Theirs', author: 'W' }, u2);
+		await setShelf(db, u1, b1, 'to_read', 1);
+		await setShelf(db, u1, b2, 'to_read', 3);
+		await setShelf(db, u1, b3, 'reading', 2);
+		await setShelf(db, u2, other, 'reading', 4);
+		const all = await listAllShelves(db, u1);
+		expect(all.to_read.map((b) => b.id)).toEqual([b2, b1]);
+		expect(all.reading.map((b) => b.id)).toEqual([b3]);
+		expect(all.finished).toEqual([]);
 	});
 });
 

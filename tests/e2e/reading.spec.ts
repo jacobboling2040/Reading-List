@@ -208,6 +208,54 @@ test('search, add, shelve as to-read appears on shelves', async ({ page }) => {
 	await expect(page.getByText('Nothing here yet.')).toBeVisible();
 });
 
+test('switching shelf tabs needs no server round trip', async ({ page }) => {
+	const me = await newMember('Tabber');
+	await withE2eDb(async (db) => {
+		const a = await addManualBook(db, { title: 'Queue Tome', author: 'A' }, me.id);
+		const b = await addManualBook(db, { title: 'Current Tome', author: 'B' }, me.id);
+		const c = await addManualBook(db, { title: 'Done Tome', author: 'C' }, me.id);
+		await setShelf(db, me.id, a, 'to_read');
+		await setShelf(db, me.id, b, 'reading');
+		await setShelf(db, me.id, c, 'finished');
+	});
+	await logIn(page, me.username);
+	await page.goto('/shelves');
+	const tabs = page.getByRole('navigation', { name: 'Shelves' });
+	await expect(page.getByRole('link', { name: 'Queue Tome' })).toBeVisible();
+
+	const dataRequests: string[] = [];
+	page.on('request', (r) => {
+		if (r.url().includes('__data.json')) dataRequests.push(r.url());
+	});
+	await tabs.getByRole('link', { name: /Reading/ }).click();
+	await expect(page.getByRole('link', { name: 'Current Tome' })).toBeVisible();
+	await tabs.getByRole('link', { name: /Finished/ }).click();
+	await expect(page.getByRole('link', { name: 'Done Tome' })).toBeVisible();
+	await expect(page).toHaveURL(/\?tab=finished$/);
+	expect(dataRequests).toEqual([]);
+});
+
+test('shelf tab stays put after moving a book', async ({ page }) => {
+	const me = await newMember('Mover');
+	await withE2eDb(async (db) => {
+		const a = await addManualBook(db, { title: 'Stay Tome', author: 'A' }, me.id);
+		const b = await addManualBook(db, { title: 'Go Tome', author: 'B' }, me.id);
+		await setShelf(db, me.id, a, 'reading');
+		await setShelf(db, me.id, b, 'reading');
+	});
+	await logIn(page, me.username);
+	await page.goto('/shelves');
+	await page.waitForLoadState('networkidle');
+	const tabs = page.getByRole('navigation', { name: 'Shelves' });
+	await tabs.getByRole('link', { name: /Reading/ }).click();
+	await expect(page.getByRole('link', { name: 'Go Tome' })).toBeVisible();
+	const item = page.getByRole('article').filter({ hasText: 'Go Tome' });
+	await item.getByRole('button', { name: 'To-read' }).click();
+	await expect(item).toHaveCount(0);
+	await expect(page.getByRole('link', { name: 'Stay Tome' })).toBeVisible();
+	await expect(tabs.getByRole('link', { name: /Reading/ })).toHaveAttribute('aria-current', 'page');
+});
+
 test('reading pages fit a 360px screen without horizontal scroll', async ({ page }) => {
 	await page.setViewportSize({ width: 360, height: 740 });
 	const friend = await newMember('Alexandria Longname');
