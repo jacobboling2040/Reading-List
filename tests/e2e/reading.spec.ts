@@ -103,6 +103,43 @@ test('adding from search shelves the book and stays on search', async ({ page })
 	await expect(result.getByText('On your Reading shelf')).toBeVisible();
 });
 
+test('search updates as you type', async ({ page }) => {
+	const me = await newMember('Typer');
+	await logIn(page, me.username);
+	await page.goto('/search');
+	await page.waitForLoadState('networkidle');
+	const box = page.getByRole('searchbox', { name: 'Find a book' });
+	await box.pressSequentially('earthsea');
+	await expect(page.getByRole('heading', { name: 'A Wizard of Earthsea' })).toBeVisible({ timeout: 3000 });
+	await expect(page).toHaveURL(/\/search\?q=earthsea$/);
+	await expect(box).toBeFocused();
+});
+
+test('stale search responses never replace newer results', async ({ page }) => {
+	const me = await newMember('Stale');
+	await logIn(page, me.username);
+	await page.goto('/search');
+	await page.waitForLoadState('networkidle');
+	let release!: () => void;
+	const released = new Promise<void>((r) => (release = r));
+	await page.route('**/search/__data.json?*q=outage*', async (route) => {
+		await released;
+		await route.continue().catch(() => {});
+	});
+	const box = page.getByRole('searchbox', { name: 'Find a book' });
+	await box.pressSequentially('outage');
+	await page.waitForTimeout(400);
+	await box.fill('');
+	await box.pressSequentially('earthsea');
+	await expect(page.getByRole('heading', { name: 'A Wizard of Earthsea' })).toBeVisible();
+	release();
+	await page.waitForTimeout(500);
+	await expect(page.getByRole('heading', { name: 'A Wizard of Earthsea' })).toBeVisible();
+	await expect(page.getByRole('alert').filter({ hasText: 'unavailable' })).toHaveCount(0);
+	await expect(box).toHaveValue('earthsea');
+	await expect(page).toHaveURL(/q=earthsea$/);
+});
+
 test('search outage shows manual-add message', async ({ page }) => {
 	const me = await newMember('Outage');
 	await logIn(page, me.username);

@@ -11,6 +11,8 @@
 	// Progressive enhancement: browsers without view transitions just navigate normally.
 	onNavigate((navigation) => {
 		if (!document.startViewTransition) return;
+		// Same-page navigations (search as you type) must not crossfade the page.
+		if (navigation.from?.url.pathname === navigation.to?.url.pathname) return;
 		if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 		return new Promise((resolve) => {
 			document.startViewTransition(async () => {
