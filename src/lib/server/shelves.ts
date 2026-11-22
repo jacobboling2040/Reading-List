@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from './db/client';
 import { books, shelfEntries } from './db/schema';
 import { getBook, rowToBook, type Book } from './books';
@@ -40,6 +40,22 @@ export async function getShelfStatus(
 		.where(and(eq(shelfEntries.userId, userId), eq(shelfEntries.bookId, bookId)))
 		.get();
 	return row?.status ?? null;
+}
+
+export async function shelfStatusesForWorks(
+	db: Db,
+	userId: number,
+	olWorkIds: string[]
+): Promise<Record<string, ShelfStatus>> {
+	if (olWorkIds.length === 0) return {};
+	const rows = await db
+		.select({ olWorkId: books.olWorkId, status: shelfEntries.status })
+		.from(shelfEntries)
+		.innerJoin(books, eq(books.id, shelfEntries.bookId))
+		.where(and(eq(shelfEntries.userId, userId), inArray(books.olWorkId, olWorkIds)));
+	const out: Record<string, ShelfStatus> = {};
+	for (const r of rows) if (r.olWorkId) out[r.olWorkId] = r.status;
+	return out;
 }
 
 export async function listShelf(
