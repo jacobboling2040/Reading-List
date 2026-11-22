@@ -17,6 +17,12 @@ npm run dev
 Open http://localhost:5173 and sign in. Make invite links from the Invite page and send them to
 friends. Joining is invite-only; there is no public sign-up.
 
+### Faster local development
+
+With `TURSO_DATABASE_URL` set, local dev talks to the remote database and every query pays network
+latency. To use a local file instead, comment out `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in
+`.env`, run `npm run db:migrate`, then `npm run create-admin`.
+
 ## Tests
 
 ```sh
