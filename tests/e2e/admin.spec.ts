@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { passwordResets } from '../../src/lib/server/db/schema';
 import { createUser } from '../../src/lib/server/users';
 import { ADMIN, withE2eDb } from './seed';
 
@@ -97,4 +98,20 @@ test('reset link lets member set new password', async ({ page, browser }) => {
 	await memberPage.getByRole('button', { name: 'Log in' }).click();
 	await expect(memberPage).not.toHaveURL(/\/login/);
 	await memberPage.close();
+});
+
+test('admin actions reject empty and unknown userId', async ({ page }) => {
+	await login(page, ADMIN.username, ADMIN.password);
+	const before = await withE2eDb(async (db) => (await db.select().from(passwordResets)).length);
+	for (const action of ['deactivate', 'reset']) {
+		for (const userId of ['', '0', '-1', '999999']) {
+			const res = await page.request.post(`/admin?/${action}`, {
+				form: { userId },
+				headers: { origin: new URL(page.url()).origin, accept: 'application/json' }
+			});
+			expect(await res.text()).toContain('Unknown member.');
+		}
+	}
+	const after = await withE2eDb(async (db) => (await db.select().from(passwordResets)).length);
+	expect(after).toBe(before);
 });

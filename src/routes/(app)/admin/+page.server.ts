@@ -30,8 +30,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 async function userId(request: Request): Promise<{ form: FormData; id: number }> {
 	const form = await request.formData();
-	const id = Number(form.get('userId'));
-	if (!Number.isInteger(id)) throw new UserError('Unknown member.');
+	const raw = String(form.get('userId') ?? '');
+	const id = /^\d+$/.test(raw) ? Number(raw) : 0;
+	if (!Number.isSafeInteger(id) || id < 1) throw new UserError('Unknown member.');
+	const [member] = await getDb().select({ id: users.id }).from(users).where(eq(users.id, id));
+	if (!member) throw new UserError('Unknown member.');
 	return { form, id };
 }
 
