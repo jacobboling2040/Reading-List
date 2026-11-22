@@ -3,7 +3,7 @@ import { createUser } from '../../src/lib/server/users';
 import { addManualBook } from '../../src/lib/server/books';
 import { saveReview } from '../../src/lib/server/reviews';
 import { follow } from '../../src/lib/server/follows';
-import { getShelfStatus } from '../../src/lib/server/shelves';
+import { getShelfStatus, setShelf } from '../../src/lib/server/shelves';
 import { withE2eDb } from './seed';
 
 const PASSWORD = 'reading-password-1';
@@ -77,4 +77,92 @@ test(`friend's 5★ appears on follower's For You with "why" line; Not for me re
 	await expect(other).toHaveCount(0);
 	await expect(page.getByText('Nothing new from the people you follow yet.')).toBeVisible();
 	expect(await withE2eDb((db) => getShelfStatus(db, me.id, liked.id))).toBe('to_read');
+});
+
+test('search result opens its book page', async ({ page }) => {
+	const me = await newMember('Searcher');
+	await logIn(page, me.username);
+	await page.goto('/search');
+	await page.getByRole('searchbox', { name: 'Find a book' }).fill('earthsea');
+	await page.getByRole('button', { name: 'Search' }).click();
+	await expect(page).toHaveURL(/\/search\?q=earthsea$/);
+	const result = page.getByRole('listitem').filter({ hasText: 'A Wizard of Earthsea' });
+	await expect(result.getByText('Ursula K. Le Guin')).toBeVisible();
+	await result.getByRole('button', { name: 'Add A Wizard of Earthsea' }).click();
+	await expect(page).toHaveURL(/\/books\/\d+$/);
+	await expect(page.getByRole('heading', { level: 1, name: 'A Wizard of Earthsea' })).toBeVisible();
+	await expect(page.getByText('1968')).toBeVisible();
+	await expect(page.getByText('No reviews yet.')).toBeVisible();
+});
+
+test('search outage shows manual-add message', async ({ page }) => {
+	const me = await newMember('Outage');
+	await logIn(page, me.username);
+	await page.goto('/search?q=outage');
+	await expect(
+		page.getByText('Book search is unavailable right now. You can add it manually.')
+	).toBeVisible();
+	const title = uniq('Handmade ');
+	await page.getByLabel('Title', { exact: true }).fill(title);
+	await page.getByLabel('Author', { exact: true }).fill('Some Author');
+	await page.getByRole('button', { name: 'Add book' }).click();
+	await expect(page).toHaveURL(/\/books\/\d+$/);
+	await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+	await expect(page.getByText('Some Author')).toBeVisible();
+});
+
+test('book page: non-numeric or missing id is 404', async ({ page }) => {
+	const me = await newMember('Lost');
+	await logIn(page, me.username);
+	expect((await page.goto('/books/abc'))?.status()).toBe(404);
+	expect((await page.goto('/books/999999'))?.status()).toBe(404);
+});
+
+test('mark finished prompts review; save review shows on book page', async ({ page }) => {
+	const me = await newMember('Finisher');
+	const critic = await newMember('Critic Cat');
+	const saver = await newMember('Saver Sue');
+	const title = uniq('Finish ');
+	const bookId = await withE2eDb(async (db) => {
+		const id = await addManualBook(db, { title, author: 'Ann Author' }, critic.id);
+		await saveReview(db, critic.id, id, { rating: 2, body: 'Not my thing.' });
+		await setShelf(db, saver.id, id, 'to_read');
+		return id;
+	});
+
+	await logIn(page, me.username);
+	await page.goto(`/books/${bookId}`);
+	await expect(page.getByText('On to-read:')).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Saver Sue' })).toBeVisible();
+	await expect(page.getByText('1 reviewer')).toBeVisible();
+
+	await page.getByRole('button', { name: 'Finished' }).click();
+	await expect(page).toHaveURL(new RegExp(`/books/${bookId}\\?review=1$`));
+	await expect(page.getByRole('button', { name: 'Finished' })).toHaveAttribute('aria-pressed', 'true');
+	const reviewForm = page.getByRole('form', { name: 'Your review' });
+	await expect(reviewForm.getByRole('radio').first()).toBeFocused();
+	await expect(page.getByRole('link', { name: 'Skip' })).toHaveAttribute('href', `/books/${bookId}`);
+
+	await reviewForm.getByRole('radio', { name: '4 stars' }).check();
+	await reviewForm.getByLabel('Your review (optional)').fill('Loved the ending.');
+	await reviewForm.getByRole('button', { name: 'Save review' }).click();
+	await expect(page).toHaveURL(new RegExp(`/books/${bookId}$`));
+	const mine = page.getByRole('listitem').filter({ hasText: 'Finisher' });
+	await expect(mine.getByText('Loved the ending.')).toBeVisible();
+	await expect(mine.getByRole('img', { name: '4 stars' })).toBeVisible();
+	await expect(page.getByText('3.0')).toBeVisible();
+	await expect(page.getByText('2 reviewers')).toBeVisible();
+
+	// Edit, then delete.
+	await reviewForm.getByRole('radio', { name: '5 stars' }).check();
+	await reviewForm.getByRole('button', { name: 'Save review' }).click();
+	await expect(mine.getByRole('img', { name: '5 stars' })).toBeVisible();
+	await expect(page.getByText('3.5')).toBeVisible();
+	await page.getByRole('button', { name: 'Delete review' }).click();
+	await expect(mine).toHaveCount(0);
+	await expect(page.getByText('1 reviewer')).toBeVisible();
+
+	await page.getByRole('button', { name: 'Remove from shelves' }).click();
+	await expect(page.getByRole('button', { name: 'Finished' })).toHaveAttribute('aria-pressed', 'false');
+	expect(await withE2eDb((db) => getShelfStatus(db, me.id, bookId))).toBeNull();
 });
