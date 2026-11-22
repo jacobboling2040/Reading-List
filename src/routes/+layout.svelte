@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '#lib/assets/favicon.svg';
-	import Nav from '../lib/components/Nav.svelte';
+	import Sidebar from '../lib/components/Sidebar.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -12,7 +12,7 @@
 </svelte:head>
 
 {#if data.user}
-	<Nav user={data.user} />
+	<Sidebar user={data.user} />
 {:else}
 	<p class="brand-solo" aria-hidden="true">Reading List</p>
 {/if}

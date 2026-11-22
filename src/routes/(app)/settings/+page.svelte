@@ -37,6 +37,15 @@
 		<p class="hint">Changing your password signs you out on your other devices.</p>
 	</section>
 
+	<section class="card">
+		<h2>More</h2>
+		<p><a href="/invite">Invite a friend</a></p>
+		{#if user.isAdmin}<p><a href="/admin">Admin</a></p>{/if}
+		<form method="POST" action="/logout" use:enhance>
+			<button>Log out</button>
+		</form>
+	</section>
+
 	<section class="card danger">
 		<h2>Delete account</h2>
 		<p>

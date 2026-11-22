@@ -183,6 +183,7 @@ test('search, add, shelve as to-read appears on shelves', async ({ page }) => {
 	await page.getByRole('button', { name: 'To-read' }).click();
 	await expect(page.getByRole('button', { name: 'To-read' })).toHaveAttribute('aria-pressed', 'true');
 
+	await page.getByRole('button', { name: 'Menu' }).click();
 	await page.getByRole('navigation').getByRole('link', { name: 'Shelves' }).click();
 	await expect(page).toHaveURL(/\/shelves$/);
 	const tabs = page.getByRole('navigation', { name: 'Shelves' });
