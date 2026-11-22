@@ -8,12 +8,25 @@
 	}: { title: string; coverId: number | null; size?: 'sm' | 'md' | 'lg' } = $props();
 
 	let failed = $state(false);
+	let img: HTMLImageElement | undefined = $state();
 	const src = $derived(coverUrl(coverId, size === 'lg' ? 'L' : 'M'));
+
+	// A server-rendered image can fail before hydration attaches onerror; catch that case too.
+	$effect(() => {
+		if (img?.complete && img.naturalWidth === 0) failed = true;
+	});
 </script>
 
 <div class="cover {size}">
 	{#if src && !failed}
-		<img {src} alt={title} loading="lazy" decoding="async" onerror={() => (failed = true)} />
+		<img
+			bind:this={img}
+			{src}
+			alt={title}
+			loading="lazy"
+			decoding="async"
+			onerror={() => (failed = true)}
+		/>
 	{:else}
 		<div class="placeholder" role="img" aria-label={title}>
 			<span aria-hidden="true">{title}</span>

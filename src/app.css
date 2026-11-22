@@ -269,6 +269,10 @@ button:hover,
 	gap: var(--space-4);
 }
 
+.list > * {
+	min-width: 0;
+}
+
 /* Messages */
 .error {
 	color: var(--color-error);
@@ -305,7 +309,7 @@ button:hover,
 /* Sign-in, join and reset pages */
 .auth {
 	max-width: 24rem;
-	margin: var(--space-7) auto;
+	margin: var(--space-5) auto var(--space-7);
 	padding: 0 var(--space-4);
 }
 

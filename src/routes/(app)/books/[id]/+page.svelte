@@ -23,7 +23,7 @@
 			{#if data.book.year}<p class="muted year">First published {data.book.year}</p>{/if}
 			<p class="summary">
 				{#if data.average !== null}
-					<Stars rating={Math.round(data.average)} />
+					<span aria-hidden="true"><Stars rating={Math.round(data.average)} /></span>
 					<strong>{data.average.toFixed(1)}</strong>
 					<span class="muted">
 						from {data.reviewerCount}

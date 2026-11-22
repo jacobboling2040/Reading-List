@@ -21,21 +21,23 @@
 	<a class="cover-link" href="/books/{book.id}" tabindex="-1" aria-hidden="true">
 		<Cover title={book.title} coverId={book.coverId} {size} />
 	</a>
-	<div class="body">
+	<div class="head">
 		<h3><a href="/books/{book.id}">{book.title}</a></h3>
 		<p class="byline">
 			{book.authors.join(', ') || 'Unknown author'}
 			{#if book.year}<span class="year">· {book.year}</span>{/if}
 		</p>
-		{@render children?.()}
 	</div>
+	{#if children}<div class="extra">{@render children()}</div>{/if}
 </article>
 
 <style>
+	/* Narrow: cover beside the title, extras full width below. Wider: extras under the title. */
 	.book-card {
-		display: flex;
-		gap: var(--space-4);
-		align-items: flex-start;
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		gap: var(--space-3) var(--space-4);
+		align-items: start;
 	}
 	.book-card.sm {
 		padding: var(--space-3);
@@ -45,9 +47,17 @@
 		display: block;
 		text-decoration: none;
 	}
-	.body {
-		flex: 1;
+	.extra {
+		grid-column: 1 / -1;
 		min-width: 0;
+	}
+	@media (min-width: 30rem) {
+		.cover-link {
+			grid-row: span 2;
+		}
+		.extra {
+			grid-column: 2;
+		}
 	}
 	h3 {
 		margin-bottom: var(--space-1);
@@ -61,10 +71,9 @@
 	}
 	.byline {
 		color: var(--color-ink-soft);
-		margin-bottom: var(--space-2);
+		margin: 0;
 	}
 	.sm .byline {
-		margin-bottom: var(--space-1);
 		font-size: 0.95rem;
 	}
 </style>

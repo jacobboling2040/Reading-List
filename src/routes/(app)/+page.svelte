@@ -29,8 +29,7 @@
 					<BookCard book={card.book}>
 						<p class="why">
 							<span class="muted">Loved by</span>
-							{#each card.lovers as lover, i (lover.username)}
-								{#if i > 0}<span class="sep" aria-hidden="true">·</span>{/if}
+							{#each card.lovers as lover (lover.username)}
 								<span class="lover">
 									<a href="/u/{lover.username}">{lover.displayName}</a>
 									<Stars rating={lover.rating} />
@@ -70,21 +69,19 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: baseline;
-		gap: var(--space-1) var(--space-2);
-		margin-bottom: var(--space-2);
+		gap: var(--space-1) var(--space-3);
+		margin-bottom: var(--space-3);
 	}
 	.lover {
 		display: inline-flex;
+		flex-wrap: wrap;
 		align-items: baseline;
-		gap: var(--space-1);
-		white-space: nowrap;
+		gap: 0 var(--space-1);
+		min-width: 0;
 	}
 	.lover a {
 		color: inherit;
 		font-weight: 600;
-	}
-	.sep {
-		color: var(--color-ink-soft);
 	}
 	.snippet {
 		margin: 0 0 var(--space-3);

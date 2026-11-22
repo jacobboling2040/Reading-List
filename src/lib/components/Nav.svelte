@@ -40,7 +40,7 @@
 		border-bottom: 1px solid var(--color-line);
 	}
 	nav {
-		max-width: var(--measure);
+		max-width: 64rem;
 		margin: 0 auto;
 		padding: var(--space-2) var(--space-3);
 		display: flex;
@@ -87,7 +87,7 @@
 	form {
 		margin: 0;
 	}
-	@media (min-width: 46rem) {
+	@media (min-width: 52rem) {
 		ul {
 			order: 0;
 			flex-basis: auto;

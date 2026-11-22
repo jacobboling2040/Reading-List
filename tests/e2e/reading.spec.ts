@@ -138,7 +138,10 @@ test('mark finished prompts review; save review shows on book page', async ({ pa
 
 	await page.getByRole('button', { name: 'Finished' }).click();
 	await expect(page).toHaveURL(new RegExp(`/books/${bookId}\\?review=1$`));
-	await expect(page.getByRole('button', { name: 'Finished' })).toHaveAttribute('aria-pressed', 'true');
+	await expect(page.getByRole('button', { name: 'Finished' })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
 	const reviewForm = page.getByRole('form', { name: 'Your review' });
 	await expect(reviewForm.getByRole('radio').first()).toBeFocused();
 	await expect(page.getByRole('link', { name: 'Skip' })).toHaveAttribute('href', `/books/${bookId}`);
@@ -163,6 +166,73 @@ test('mark finished prompts review; save review shows on book page', async ({ pa
 	await expect(page.getByText('1 reviewer')).toBeVisible();
 
 	await page.getByRole('button', { name: 'Remove from shelves' }).click();
-	await expect(page.getByRole('button', { name: 'Finished' })).toHaveAttribute('aria-pressed', 'false');
+	await expect(page.getByRole('button', { name: 'Finished' })).toHaveAttribute(
+		'aria-pressed',
+		'false'
+	);
 	expect(await withE2eDb((db) => getShelfStatus(db, me.id, bookId))).toBeNull();
+});
+
+test('search, add, shelve as to-read appears on shelves', async ({ page }) => {
+	const me = await newMember('Shelver');
+	await logIn(page, me.username);
+	await page.goto('/search?q=le+guin');
+	await page.getByRole('button', { name: 'Add The Left Hand of Darkness' }).click();
+	await expect(page).toHaveURL(/\/books\/\d+$/);
+	const bookUrl = page.url();
+	await page.getByRole('button', { name: 'To-read' }).click();
+	await expect(page.getByRole('button', { name: 'To-read' })).toHaveAttribute('aria-pressed', 'true');
+
+	await page.getByRole('navigation').getByRole('link', { name: 'Shelves' }).click();
+	await expect(page).toHaveURL(/\/shelves$/);
+	const tabs = page.getByRole('navigation', { name: 'Shelves' });
+	await expect(tabs.getByRole('link', { name: /To-read/ })).toHaveAttribute('aria-current', 'page');
+	const item = page.getByRole('article').filter({ hasText: 'The Left Hand of Darkness' });
+	await expect(item).toBeVisible();
+
+	await item.getByRole('button', { name: 'Reading' }).click();
+	await expect(item).toHaveCount(0);
+	await tabs.getByRole('link', { name: /Reading/ }).click();
+	await expect(page).toHaveURL(/\/shelves\?tab=reading$/);
+	await expect(item).toBeVisible();
+
+	// Finishing from the shelves page also prompts for a review.
+	await item.getByRole('button', { name: 'Finished' }).click();
+	await expect(page).toHaveURL(new RegExp(`${bookUrl.replace(/[/.?]/g, '\\$&')}\\?review=1$`));
+	await page.getByRole('link', { name: 'Skip' }).click();
+	await page.goto('/shelves?tab=finished');
+	await expect(item).toBeVisible();
+	await page.goto('/shelves?tab=nonsense');
+	await expect(tabs.getByRole('link', { name: /To-read/ })).toHaveAttribute('aria-current', 'page');
+	await expect(page.getByText('Nothing here yet.')).toBeVisible();
+});
+
+test('reading pages fit a 360px screen without horizontal scroll', async ({ page }) => {
+	await page.setViewportSize({ width: 360, height: 740 });
+	const friend = await newMember('Alexandria Longname');
+	const me = await newMember('Narrow');
+	const bookId = await withE2eDb(async (db) => {
+		await follow(db, me.id, friend.id);
+		const id = await addManualBook(
+			db,
+			{
+				title: uniq('An Unusually Long Title For A Novel About Many Things '),
+				author: 'Wordy Author'
+			},
+			friend.id
+		);
+		await saveReview(db, friend.id, id, { rating: 5, body: 'x'.repeat(300) });
+		const shelved = await addManualBook(db, { title: uniq('Shelved '), author: 'A' }, me.id);
+		await setShelf(db, me.id, shelved, 'to_read');
+		return id;
+	});
+	await logIn(page, me.username);
+	const paths = ['/', '/search?q=le+guin', '/search?q=outage', `/books/${bookId}`, '/shelves'];
+	for (const path of paths) {
+		await page.goto(path);
+		const overflow = await page.evaluate(
+			() => document.documentElement.scrollWidth - document.documentElement.clientWidth
+		);
+		expect(overflow, `horizontal overflow on ${path}`).toBeLessThanOrEqual(0);
+	}
 });
