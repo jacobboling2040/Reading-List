@@ -137,3 +137,10 @@ export const dismissals = sqliteTable(
 	},
 	(t) => [primaryKey({ columns: [t.userId, t.bookId] })]
 );
+
+// Open Library search results keyed by normalised query, so repeat searches skip the network.
+export const olSearchCache = sqliteTable('ol_search_cache', {
+	query: text('query').primaryKey(),
+	results: text('results').notNull(),
+	fetchedAt: integer('fetched_at').notNull()
+});

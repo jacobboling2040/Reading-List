@@ -6,6 +6,7 @@ import {
 	upsertOpenLibraryBook,
 	type SearchResult
 } from '../../../lib/server/books';
+import { cachedSearch } from '../../../lib/server/search-cache';
 import { UserError } from '../../../lib/server/errors';
 import { withUserErrors } from '../../../lib/server/form-input';
 import type { Actions, PageServerLoad } from './$types';
@@ -16,7 +17,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	let searchError = '';
 	if (q) {
 		try {
-			results = await searchOpenLibrary(q);
+			results = await cachedSearch(getDb(), q);
 		} catch (e) {
 			if (!(e instanceof UserError)) throw e;
 			searchError = e.message;
