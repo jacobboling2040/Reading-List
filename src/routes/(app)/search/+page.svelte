@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { untrack } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import Cover from '../../../lib/components/Cover.svelte';
 	import { SHELF_LABELS } from '../../../lib/format';
 	import type { PageProps } from './$types';
@@ -20,9 +20,13 @@
 		if (document.activeElement !== input) value = q;
 	});
 
+	// A pending search must not fire after the user has navigated away.
+	onDestroy(() => clearTimeout(timer));
+
 	function onInput() {
 		clearTimeout(timer);
 		const q = value.trim();
+		// One character is too broad: intentionally keep the previous results.
 		if (q.length === 1) return;
 		// SvelteKit drops the result of a navigation superseded by a newer one, so a slow
 		// older response can't replace newer results.

@@ -115,6 +115,18 @@ test('search updates as you type', async ({ page }) => {
 	await expect(box).toBeFocused();
 });
 
+test('a pending search does not hijack navigating away', async ({ page }) => {
+	const me = await newMember('Leaver');
+	await logIn(page, me.username);
+	await page.goto('/search');
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('searchbox', { name: 'Find a book' }).pressSequentially('ea');
+	await page.getByRole('button', { name: 'Menu' }).click();
+	await page.getByRole('link', { name: 'Shelves' }).first().click();
+	await page.waitForTimeout(600);
+	await expect(page).toHaveURL(/\/shelves$/);
+});
+
 test('stale search responses never replace newer results', async ({ page }) => {
 	const me = await newMember('Stale');
 	await logIn(page, me.username);
