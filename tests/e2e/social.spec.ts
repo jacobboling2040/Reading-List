@@ -59,6 +59,41 @@ test('profile shows shelves and recent reviews, and no follower counts', async (
 	expect((await page.request.get('/u/nobody_here')).status()).toBe(404);
 });
 
+test("friend's shelves are browsable from their profile", async ({ page }) => {
+	const me = await newMember('Browser');
+	const them = await newMember('Riley Shelves');
+	await withE2eDb(async (db) => {
+		const a = await addManualBook(db, { title: 'Queued Book', author: 'A. Writer' }, them.id);
+		const b = await addManualBook(db, { title: 'Done Book', author: 'B. Writer' }, them.id);
+		await setShelf(db, them.id, a, 'to_read');
+		await setShelf(db, them.id, b, 'finished');
+	});
+	await logIn(page, me.username);
+	await page.goto(`/u/${them.username}`);
+	await page.getByRole('link', { name: 'To-read (1)' }).click();
+	await expect(page).toHaveURL(/\?tab=to_read$/);
+	await expect(page.getByRole('link', { name: 'Queued Book' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'Done Book' })).toHaveCount(0);
+	await page.getByRole('link', { name: 'Finished (1)' }).click();
+	await expect(page.getByRole('link', { name: 'Done Book' })).toBeVisible();
+	await expect(page.locator('body')).not.toContainText(/follower/i);
+
+	// An invalid tab is ignored: the default profile view shows.
+	await page.goto(`/u/${them.username}?tab=bogus`);
+	await expect(page.getByRole('heading', { name: 'Reading now' })).toBeVisible();
+});
+
+test('Profile nav link opens your own profile', async ({ page }) => {
+	const me = await newMember('Self Viewer');
+	await logIn(page, me.username);
+	await page
+		.getByRole('navigation', { name: 'Main' })
+		.getByRole('link', { name: 'Profile' })
+		.click();
+	await expect(page).toHaveURL(new RegExp(`/u/${me.username}$`));
+	await expect(page.getByRole('heading', { name: 'Self Viewer' })).toBeVisible();
+});
+
 test('create and revoke invite', async ({ page }) => {
 	const me = await newMember('Inviter');
 	await logIn(page, me.username);

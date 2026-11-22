@@ -1,31 +1,43 @@
-import { error, fail } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { getDb } from '../../../../lib/server/db/client';
-import { follow, getProfile, isFollowing, unfollow } from '../../../../lib/server/follows';
-import { UserError } from '../../../../lib/server/errors';
+import {
+	findActiveUserId,
+	follow,
+	getProfile,
+	isFollowing,
+	unfollow
+} from '../../../../lib/server/follows';
+import { isShelfStatus, withUserErrors } from '../../../../lib/server/form-input';
+import { listShelf } from '../../../../lib/server/shelves';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const db = getDb();
 	const profile = await getProfile(db, params.username);
 	if (!profile) error(404, 'Not found');
 	const me = locals.user!.id;
 	const isSelf = profile.id === me;
-	return { profile, isSelf, following: isSelf ? false : await isFollowing(db, me, profile.id) };
+	const param = url.searchParams.get('tab');
+	const tab = isShelfStatus(param) ? param : null;
+	return {
+		profile,
+		isSelf,
+		following: isSelf ? false : await isFollowing(db, me, profile.id),
+		tab,
+		shelf: tab ? await listShelf(db, profile.id, tab) : []
+	};
 };
 
-async function change(
+function change(
 	{ locals, params }: { locals: App.Locals; params: { username: string } },
 	fn: typeof follow
 ) {
-	try {
-		const profile = await getProfile(getDb(), params.username);
-		if (!profile) error(404, 'Not found');
-		await fn(getDb(), locals.user!.id, profile.id);
+	return withUserErrors(async () => {
+		const targetId = await findActiveUserId(getDb(), params.username);
+		if (targetId === null) error(404, 'Not found');
+		await fn(getDb(), locals.user!.id, targetId);
 		return { message: null };
-	} catch (e) {
-		if (e instanceof UserError) return fail(400, { message: e.message });
-		throw e;
-	}
+	});
 }
 
 export const actions: Actions = {

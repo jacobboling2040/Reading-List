@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 
-	let { user }: { user: { displayName: string; isAdmin: boolean } } = $props();
+	let { user }: { user: { username: string; displayName: string; isAdmin: boolean } } = $props();
 
 	const links = $derived([
 		{ href: '/', label: 'For You' },
@@ -10,6 +10,7 @@
 		{ href: '/shelves', label: 'Shelves' },
 		{ href: '/people', label: 'People' },
 		{ href: '/invite', label: 'Invite' },
+		{ href: `/u/${user.username}`, label: 'Profile' },
 		{ href: '/settings', label: 'Settings' },
 		...(user.isAdmin ? [{ href: '/admin', label: 'Admin' }] : [])
 	]);

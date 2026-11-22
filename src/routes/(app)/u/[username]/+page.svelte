@@ -6,6 +6,7 @@
 
 	let { data, form }: PageProps = $props();
 	const p = $derived(data.profile);
+	const titles = { to_read: 'To-read', reading: 'Reading', finished: 'Finished' } as const;
 </script>
 
 <svelte:head><title>{p.displayName}</title></svelte:head>
@@ -28,23 +29,45 @@
 	</header>
 	{#if form?.message}<p class="callout error" role="alert">{form.message}</p>{/if}
 
-	<section>
-		<h2>Reading now</h2>
-		{#if p.readingNow.length === 0}
-			<p class="muted">Not reading anything right now.</p>
-		{:else}
-			<ul class="list">
-				{#each p.readingNow as book (book.id)}
-					<li><BookCard {book} size="sm" /></li>
-				{/each}
-			</ul>
-		{/if}
-	</section>
+	<nav class="counts" aria-label="Shelves">
+		<a href="?tab=to_read" aria-current={data.tab === 'to_read' ? 'page' : undefined}
+			>To-read ({p.counts.to_read})</a
+		>
+		<a href="?tab=reading" aria-current={data.tab === 'reading' ? 'page' : undefined}
+			>Reading ({p.counts.reading})</a
+		>
+		<a href="?tab=finished" aria-current={data.tab === 'finished' ? 'page' : undefined}
+			>Finished ({p.counts.finished})</a
+		>
+	</nav>
 
-	<p class="counts">
-		<span>To-read ({p.counts.to_read})</span>
-		<span>Finished ({p.counts.finished})</span>
-	</p>
+	{#if data.tab}
+		<section>
+			<h2>{titles[data.tab]}</h2>
+			{#if data.shelf.length === 0}
+				<p class="muted">Nothing here yet.</p>
+			{:else}
+				<ul class="list">
+					{#each data.shelf as book (book.id)}
+						<li><BookCard {book} size="sm" /></li>
+					{/each}
+				</ul>
+			{/if}
+			<p><a href="/u/{p.username}">Back to profile</a></p>
+		</section>
+	{:else}
+		<section>
+			<h2>Reading now</h2>
+			{#if p.readingNow.length === 0}
+				<p class="muted">Not reading anything right now.</p>
+			{:else}
+				<ul class="list">
+					{#each p.readingNow as book (book.id)}
+						<li><BookCard {book} size="sm" /></li>
+					{/each}
+				</ul>
+			{/if}
+		</section>
 
 	<section>
 		<h2>Recent reviews</h2>
@@ -63,6 +86,7 @@
 			</ul>
 		{/if}
 	</section>
+	{/if}
 </main>
 
 <style>
@@ -79,11 +103,20 @@
 	}
 	.counts {
 		display: flex;
+		flex-wrap: wrap;
 		gap: var(--space-5);
 		font-family: var(--font-serif);
 		font-size: 1.2rem;
 		font-weight: 600;
 		margin-bottom: var(--space-5);
+	}
+	.counts a {
+		color: inherit;
+		text-decoration: none;
+		border-bottom: 2px solid transparent;
+	}
+	.counts a[aria-current='page'] {
+		border-bottom-color: var(--color-accent);
 	}
 	section {
 		margin-bottom: var(--space-5);
