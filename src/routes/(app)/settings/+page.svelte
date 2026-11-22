@@ -1,6 +1,15 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { pending } from '../../../lib/pending';
-	import { SCHEMES, SCHEME_LABELS, THEME_MODES, applyThemePrefs, type Scheme, type ThemeMode } from '../../../lib/theme';
+	import {
+		SCHEMES,
+		SCHEME_LABELS,
+		THEME_MODES,
+		applyThemePrefs,
+		watchThemePrefs,
+		type Scheme,
+		type ThemeMode
+	} from '../../../lib/theme';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -15,10 +24,19 @@
 		plum: { bg: '#f4eef3', accent: '#7a2e6e' }
 	};
 
-	// svelte-ignore state_referenced_locally
-	let mode = $state<ThemeMode>(data.theme.mode);
-	// svelte-ignore state_referenced_locally
-	let scheme = $state<Scheme>(data.theme.scheme);
+	let mode = $state<ThemeMode>(untrack(() => data.theme.mode));
+	let scheme = $state<Scheme>(untrack(() => data.theme.scheme));
+
+	// The sidebar toggle can change the live theme, so follow <html> rather than the first value seen.
+	$effect(() =>
+		watchThemePrefs(
+			(prefs) => {
+				mode = prefs.mode;
+				scheme = prefs.scheme;
+			},
+			untrack(() => data.theme)
+		)
+	);
 
 	// With JS the change applies at once and saves in the background; the button covers no-JS.
 	function changed() {

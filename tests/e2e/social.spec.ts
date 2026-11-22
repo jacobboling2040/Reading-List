@@ -161,3 +161,16 @@ test('delete account signs out and username is free', async ({ page }) => {
 		createUser(db, { username: me.username, displayName: 'Again', password: PASSWORD })
 	);
 });
+
+test('Back to profile after a tab switch returns to the overview', async ({ page }) => {
+	const me = await newMember('Backer');
+	const them = await newMember('Sam Backable');
+	await logIn(page, me.username);
+	await page.goto(`/u/${them.username}`);
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('link', { name: /Reading 0/ }).click();
+	await expect(page).toHaveURL(/\?tab=reading$/);
+	await page.getByRole('link', { name: 'Back to profile' }).click();
+	await expect(page).toHaveURL(new RegExp(`/u/${them.username}$`));
+	await expect(page.getByRole('heading', { name: 'Reading now' })).toBeVisible();
+});

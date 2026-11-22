@@ -40,3 +40,17 @@ export function applyThemePrefs(prefs: ThemePrefs): void {
 	document.cookie = `${THEME_COOKIE}=${prefs.mode}${attrs}`;
 	document.cookie = `${SCHEME_COOKIE}=${prefs.scheme}${attrs}`;
 }
+
+/** Browser only: report the live <html> theme now and on every change, from any control. Returns a stop function. */
+export function watchThemePrefs(onChange: (prefs: ThemePrefs) => void, fallback: ThemePrefs): () => void {
+	const root = document.documentElement;
+	const read = () =>
+		onChange({
+			mode: THEME_MODES.find((m) => m === root.dataset.theme) ?? fallback.mode,
+			scheme: SCHEMES.find((s) => s === root.dataset.scheme) ?? fallback.scheme
+		});
+	read();
+	const observer = new MutationObserver(read);
+	observer.observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-scheme'] });
+	return () => observer.disconnect();
+}

@@ -48,9 +48,17 @@
 	}
 
 	// Skip the initial hydration ('enter'): a Menu tap before hydration must stay open.
-	afterNavigate(({ type }) => {
-		if (type !== 'enter' && nav?.matches(':popover-open')) nav.hidePopover();
+	// Same-path navigations (search-as-you-type, tab switches) must not close a menu the user just opened.
+	afterNavigate(({ type, from, to }) => {
+		if (type !== 'enter' && from?.url.pathname !== to?.url.pathname && nav?.matches(':popover-open')) {
+			nav.hidePopover();
+		}
 	});
+
+	// A link to the page you are already on has no path change, so close on the click itself.
+	function onNavClick(event: MouseEvent) {
+		if ((event.target as Element).closest('a') && nav.matches(':popover-open')) nav.hidePopover();
+	}
 
 	// A popover opened natively before hydration never fires `toggle` for us.
 	onMount(() => {
@@ -79,7 +87,7 @@
 </header>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -- keydown only wraps Tab inside the dialog-like panel -->
-<nav id="sidebar" popover bind:this={nav} aria-label="Main" ontoggle={onToggle} onkeydown={trapTab}>
+<nav id="sidebar" popover bind:this={nav} aria-label="Main" ontoggle={onToggle} onkeydown={trapTab} onclick={onNavClick}>
 	<button
 		class="close"
 		type="button"

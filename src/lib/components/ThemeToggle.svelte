@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { SCHEMES, THEME_MODES, applyThemePrefs, nextMode, type Scheme, type ThemeMode } from '../theme';
+	import { applyThemePrefs, nextMode, watchThemePrefs, type Scheme, type ThemeMode } from '../theme';
 
 	let { mode: initialMode, scheme: initialScheme }: { mode: ThemeMode; scheme: Scheme } = $props();
 
@@ -12,17 +12,15 @@
 	const next = $derived(nextMode(mode));
 
 	// The Settings picker can change the live theme without reloading this component, so follow <html>.
-	$effect(() => {
-		const root = document.documentElement;
-		const read = () => {
-			mode = THEME_MODES.find((m) => m === root.dataset.theme) ?? mode;
-			scheme = SCHEMES.find((s) => s === root.dataset.scheme) ?? scheme;
-		};
-		read();
-		const observer = new MutationObserver(read);
-		observer.observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-scheme'] });
-		return () => observer.disconnect();
-	});
+	$effect(() =>
+		watchThemePrefs(
+			(prefs) => {
+				mode = prefs.mode;
+				scheme = prefs.scheme;
+			},
+			{ mode: initialMode, scheme: initialScheme }
+		)
+	);
 
 	// With JS the mode cycles in place and saves in the background; without it the form posts and redirects back.
 	function cycle(event: SubmitEvent) {
