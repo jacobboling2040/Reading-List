@@ -64,6 +64,7 @@ for (const bad of [
 	'https://evil.example',
 	'//evil.example',
 	'/\\evil.example',
+	'/.//evil.example',
 	'/\t/evil.example',
 	'/\n/evil.example'
 ]) {

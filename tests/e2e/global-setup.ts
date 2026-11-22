@@ -42,7 +42,8 @@ export default async function globalSetup() {
 			OPENLIBRARY_BASE_URL: `http://localhost:${OL_STUB_PORT}`
 		}
 	});
-	dev.stderr?.pipe(process.stderr);
+	let devStderr = '';
+	dev.stderr?.on('data', (chunk) => (devStderr += chunk));
 	const exited = new Promise<never>((_, reject) => {
 		dev.once('error', reject);
 		dev.once('exit', (code, signal) =>
@@ -61,6 +62,7 @@ export default async function globalSetup() {
 		await Promise.race([waitFor(`http://localhost:${E2E_PORT}/robots.txt`), exited]);
 	} catch (e) {
 		stop();
+		if (devStderr) console.error(devStderr);
 		throw e;
 	}
 	dev.removeAllListeners('exit');

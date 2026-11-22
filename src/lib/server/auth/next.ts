@@ -7,6 +7,8 @@ export function safeNext(next: string | null | undefined): string {
 	try {
 		const url = new URL(next, BASE);
 		if (url.origin !== BASE) return '/';
+		// Dot segments can normalize to `//host` (e.g. `/.//evil.example`), which is protocol-relative.
+		if (url.pathname.startsWith('//') || url.pathname.startsWith('/\\')) return '/';
 		return url.pathname + url.search + url.hash;
 	} catch {
 		return '/';
