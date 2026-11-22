@@ -14,7 +14,7 @@ import {
 } from './db/schema';
 import { UserError } from './errors';
 import { hashPassword, verifyPassword } from './auth/password';
-import { invalidateUserSessions, type SessionUser } from './auth/session';
+import { invalidateOtherSessions, invalidateUserSessions, type SessionUser } from './auth/session';
 
 const DAY = 24 * 60 * 60 * 1000;
 const INVITE_LIFETIME = 7 * DAY;
@@ -287,6 +287,42 @@ export async function resetPassword(
 		return row.userId;
 	});
 	await invalidateUserSessions(db, userId);
+}
+
+export async function updateDisplayName(
+	db: Db,
+	userId: number,
+	displayName: string
+): Promise<void> {
+	const name = displayName.trim();
+	if (name.length < 1 || name.length > 40)
+		throw new UserError('Display name must be 1–40 characters.');
+	await db.update(users).set({ displayName: name }).where(eq(users.id, userId));
+}
+
+/** Verifies the current password, sets the new one, and signs out every other session. */
+export async function changePassword(
+	db: Db,
+	userId: number,
+	currentPassword: string,
+	newPassword: string,
+	keepSessionToken?: string
+): Promise<void> {
+	const [row] = await db
+		.select({ passwordHash: users.passwordHash })
+		.from(users)
+		.where(eq(users.id, userId));
+	if (!row || !(await verifyPassword(row.passwordHash, currentPassword))) {
+		throw new UserError('Your current password is not correct.');
+	}
+	const problem = passwordProblem(newPassword);
+	if (problem) throw new UserError(problem);
+	await db
+		.update(users)
+		.set({ passwordHash: await hashPassword(newPassword) })
+		.where(eq(users.id, userId));
+	if (keepSessionToken) await invalidateOtherSessions(db, userId, keepSessionToken);
+	else await invalidateUserSessions(db, userId);
 }
 
 export async function setDeactivated(db: Db, userId: number, deactivated: boolean): Promise<void> {

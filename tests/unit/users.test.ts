@@ -19,6 +19,7 @@ import {
 	authenticate,
 	createInvite,
 	createPasswordReset,
+	changePassword,
 	createUser,
 	deleteAccount,
 	getInvite,
@@ -27,6 +28,7 @@ import {
 	resetPassword,
 	revokeInvite,
 	setDeactivated,
+	updateDisplayName,
 	validateSignup
 } from '../../src/lib/server/users';
 
@@ -281,5 +283,45 @@ describe('deleteAccount', () => {
 		expect(await db.select().from(users).where(eq(users.invitedBy, id))).toHaveLength(0);
 		const [b] = await db.select().from(books);
 		expect(b.createdBy).toBeNull();
+	});
+});
+
+describe('updateDisplayName and changePassword', () => {
+	let db: Db;
+	beforeEach(async () => {
+		db = await createTestDb();
+	});
+	const mk = () =>
+		createUser(db, { username: 'sam', displayName: 'Sam', password: 'correct horse 1' });
+
+	it('updateDisplayName trims and applies the 1-40 rule', async () => {
+		const id = await mk();
+		await updateDisplayName(db, id, '  Samantha ');
+		const [u] = await db.select().from(users).where(eq(users.id, id));
+		expect(u.displayName).toBe('Samantha');
+		await expect(updateDisplayName(db, id, '   ')).rejects.toBeInstanceOf(UserError);
+		await expect(updateDisplayName(db, id, 'x'.repeat(41))).rejects.toBeInstanceOf(UserError);
+	});
+
+	it('changePassword requires the current password and validates the new one', async () => {
+		const id = await mk();
+		await expect(
+			changePassword(db, id, 'wrong password!', 'brand new password')
+		).rejects.toBeInstanceOf(UserError);
+		await expect(changePassword(db, id, 'correct horse 1', 'short')).rejects.toBeInstanceOf(
+			UserError
+		);
+		await changePassword(db, id, 'correct horse 1', 'brand new password');
+		expect(await authenticate(db, 'sam', 'brand new password')).not.toBeNull();
+		expect(await authenticate(db, 'sam', 'correct horse 1')).toBeNull();
+	});
+
+	it('changePassword drops other sessions but keeps the current one', async () => {
+		const id = await mk();
+		const keep = await createSession(db, id);
+		const other = await createSession(db, id);
+		await changePassword(db, id, 'correct horse 1', 'brand new password', keep.token);
+		expect(await validateSession(db, keep.token)).not.toBeNull();
+		expect(await validateSession(db, other.token)).toBeNull();
 	});
 });

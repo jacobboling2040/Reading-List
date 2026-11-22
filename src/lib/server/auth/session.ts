@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import type { Db } from '../db/client';
 import { sessions, users } from '../db/schema';
 
@@ -77,6 +77,17 @@ export async function invalidateSession(db: Db, token: string): Promise<void> {
 
 export async function invalidateUserSessions(db: Db, userId: number): Promise<void> {
 	await db.delete(sessions).where(eq(sessions.userId, userId));
+}
+
+/** Sign out everywhere except the session identified by `keepToken`. */
+export async function invalidateOtherSessions(
+	db: Db,
+	userId: number,
+	keepToken: string
+): Promise<void> {
+	await db
+		.delete(sessions)
+		.where(and(eq(sessions.userId, userId), ne(sessions.idHash, hashToken(keepToken))));
 }
 
 export function setSessionCookie(

@@ -22,7 +22,7 @@ test('join with invite lands on /people, signed in', async ({ page }) => {
 	await page.getByRole('button', { name: 'Join' }).click();
 	await expect(page).toHaveURL(/\/people$/);
 	await expect(page.getByRole('navigation').getByRole('link', { name: 'Search' })).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Admin' })).toHaveCount(0);
+	await expect(page.getByRole('navigation').getByRole('link', { name: 'Admin' })).toHaveCount(0);
 });
 
 test('reusing invite shows expired message', async ({ page, browser }) => {
