@@ -557,6 +557,31 @@ a {
 	transition: color var(--dur-fast) var(--ease);
 }
 
+button[aria-busy='true'] {
+	opacity: 0.7;
+	cursor: progress;
+}
+
+/* Under reduced motion the animation duration is 0s, so the ring stays static. */
+button[aria-busy='true']::after {
+	content: '';
+	display: inline-block;
+	width: 0.9em;
+	height: 0.9em;
+	margin-left: 0.5em;
+	vertical-align: -0.1em;
+	border: 2px solid currentColor;
+	border-right-color: transparent;
+	border-radius: 50%;
+	animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,

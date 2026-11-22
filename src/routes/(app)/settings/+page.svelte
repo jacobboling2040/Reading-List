@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { pending } from '../../../lib/pending';
 	import { SCHEMES, SCHEME_LABELS, THEME_MODES, applyThemePrefs, type Scheme, type ThemeMode } from '../../../lib/theme';
 	import type { PageProps } from './$types';
 
@@ -60,7 +60,7 @@
 
 	<section class="card">
 		<h2>Display name</h2>
-		<form class="stack" method="POST" action="?/name" use:enhance>
+		<form class="stack" method="POST" action="?/name" use:pending>
 			<label>Display name <input name="displayName" required maxlength="40" value={user.displayName} /></label>
 			{#if form?.section === 'name'}
 				{#if form.message}<p class="error" role="alert">{form.message}</p>{/if}
@@ -72,7 +72,7 @@
 
 	<section class="card">
 		<h2>Password</h2>
-		<form class="stack" method="POST" action="?/password" use:enhance>
+		<form class="stack" method="POST" action="?/password" use:pending>
 			<label>Current password <input name="current" type="password" autocomplete="current-password" required /></label>
 			<label>New password <input name="next" type="password" autocomplete="new-password" required minlength="10" maxlength="256" /></label>
 			{#if form?.section === 'password'}
@@ -88,7 +88,7 @@
 		<h2>More</h2>
 		<p><a href="/invite">Invite a friend</a></p>
 		{#if user.isAdmin}<p><a href="/admin">Admin</a></p>{/if}
-		<form method="POST" action="/logout" use:enhance>
+		<form method="POST" action="/logout" use:pending>
 			<button>Log out</button>
 		</form>
 	</section>
@@ -99,7 +99,7 @@
 			This permanently deletes your shelves, reviews and follows. Your username
 			<strong>{user.username}</strong> becomes free again.
 		</p>
-		<form class="stack" method="POST" action="?/delete" use:enhance>
+		<form class="stack" method="POST" action="?/delete" use:pending>
 			<label>Type your username to confirm <input name="confirm" autocomplete="off" required /></label>
 			{#if form?.section === 'delete' && form.message}<p class="error" role="alert">{form.message}</p>{/if}
 			<button>Delete my account</button>

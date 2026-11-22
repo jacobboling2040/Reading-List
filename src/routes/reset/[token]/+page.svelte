@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { pending } from '../../../lib/pending';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -13,7 +13,7 @@
 	{#if !data.valid && !form?.message}
 		<p class="error" role="alert">This reset link has expired or was already used.</p>
 	{:else if data.valid}
-	<form method="POST" use:enhance>
+	<form method="POST" use:pending>
 		<label>New password <input name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="256" /></label>
 		<button>Set password</button>
 	</form>

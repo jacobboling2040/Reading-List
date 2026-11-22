@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { pending } from '../../lib/pending';
 	import BookCard from '../../lib/components/BookCard.svelte';
 	import Stars from '../../lib/components/Stars.svelte';
 	import type { PageProps } from './$types';
@@ -43,11 +43,11 @@
 							</figure>
 						{/if}
 						<div class="actions">
-							<form method="POST" action="?/toRead" use:enhance>
+							<form method="POST" action="?/toRead" use:pending>
 								<input type="hidden" name="bookId" value={card.book.id} />
 								<button>+ To-read</button>
 							</form>
-							<form method="POST" action="?/dismiss" use:enhance>
+							<form method="POST" action="?/dismiss" use:pending>
 								<input type="hidden" name="bookId" value={card.book.id} />
 								<button class="button-quiet">Not for me</button>
 							</form>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { pending } from '../../../lib/pending';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -25,11 +25,11 @@
 						<td>@{m.username}</td>
 						<td>{m.deactivatedAt === null ? 'Active' : 'Deactivated'}</td>
 						<td class="actions">
-							<form method="POST" action={m.deactivatedAt === null ? '?/deactivate' : '?/reactivate'} use:enhance>
+							<form method="POST" action={m.deactivatedAt === null ? '?/deactivate' : '?/reactivate'} use:pending>
 								<input type="hidden" name="userId" value={m.id} />
 								<button>{m.deactivatedAt === null ? 'Deactivate' : 'Reactivate'}</button>
 							</form>
-							<form method="POST" action="?/reset" use:enhance>
+							<form method="POST" action="?/reset" use:pending>
 								<input type="hidden" name="userId" value={m.id} />
 								<button>Create reset link</button>
 							</form>
@@ -52,7 +52,7 @@
 				{#each data.invites as inv (inv.token)}
 					<li>
 						From {inv.createdByName}, expires {date(inv.expiresAt)}
-						<form method="POST" action="?/revoke" use:enhance>
+						<form method="POST" action="?/revoke" use:pending>
 							<input type="hidden" name="token" value={inv.token} />
 							<button>Revoke</button>
 						</form>

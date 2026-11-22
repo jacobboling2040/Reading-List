@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { pending } from '../../../../lib/pending';
 	import { fade } from 'svelte/transition';
 	import { SHELF_LABELS } from '../../../../lib/format';
 	import BookCard from '../../../../lib/components/BookCard.svelte';
@@ -36,7 +36,7 @@
 		{#if data.isSelf}
 			<a class="button button-quiet" href="/settings">Edit your settings</a>
 		{:else}
-			<form method="POST" action={data.following ? '?/unfollow' : '?/follow'} use:enhance>
+			<form method="POST" action={data.following ? '?/unfollow' : '?/follow'} use:pending>
 				<button class={data.following ? 'button-quiet' : ''}>
 					{data.following ? 'Unfollow' : 'Follow'}
 				</button>
