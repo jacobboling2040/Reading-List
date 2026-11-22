@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { pending } from '../../../lib/pending';
 	import { fade } from 'svelte/transition';
 	import BookCard from '../../../lib/components/BookCard.svelte';
 	import ShelfTabs from '../../../lib/components/ShelfTabs.svelte';
@@ -57,14 +57,14 @@
 						<li>
 							<BookCard {book} size="sm">
 								<div class="actions">
-									<form class="moves" method="POST" action="?/move" use:enhance>
+									<form class="moves" method="POST" action="?/move" use:pending>
 										<input type="hidden" name="bookId" value={book.id} />
 										<span class="muted move-label">Move to</span>
 										{#each statuses.filter((s) => s !== tab) as s (s)}
 											<button class="button-quiet" name="status" value={s}>{SHELF_LABELS[s]}</button>
 										{/each}
 									</form>
-									<form method="POST" action="?/remove" use:enhance>
+									<form method="POST" action="?/remove" use:pending>
 										<input type="hidden" name="bookId" value={book.id} />
 										<button class="link-button">Remove</button>
 									</form>

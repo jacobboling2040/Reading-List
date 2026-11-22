@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { pending } from '../../lib/pending';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -11,7 +11,7 @@
 	<h1>Log in</h1>
 	{#if data.notice}<p class="notice" role="status">{data.notice}</p>{/if}
 	{#if form?.message}<p class="error" role="alert">{form.message}</p>{/if}
-	<form method="POST" use:enhance>
+	<form method="POST" use:pending>
 		<input type="hidden" name="next" value={data.next} />
 		<label>Username <input name="username" autocomplete="username" required value={form?.username ?? ''} /></label>
 		<label>Password <input name="password" type="password" autocomplete="current-password" required /></label>

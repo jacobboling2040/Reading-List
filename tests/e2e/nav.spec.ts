@@ -96,3 +96,20 @@ test('a Menu tap before hydration keeps the sidebar open', async ({ page }) => {
 	await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Menu', exact: true })).toHaveAttribute('aria-expanded', 'true');
 });
+
+test('submitting shows a busy button until done', async ({ page }) => {
+	await logIn(page, await newMember());
+	await page.goto('/settings');
+	await page.waitForLoadState('networkidle');
+	await page.route('**/settings?/name', async (route) => {
+		await new Promise((r) => setTimeout(r, 500));
+		await route.continue();
+	});
+	const save = page.getByRole('button', { name: 'Save name' });
+	await save.click();
+	await expect(save).toHaveAttribute('aria-busy', 'true');
+	await expect(save).toBeDisabled();
+	await expect(page.getByText('Name saved.')).toBeVisible();
+	await expect(save).not.toHaveAttribute('aria-busy', 'true');
+	await expect(save).toBeEnabled();
+});

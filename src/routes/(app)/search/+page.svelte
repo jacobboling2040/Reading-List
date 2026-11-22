@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { pending } from '../../../lib/pending';
 	import { goto } from '$app/navigation';
 	import { onDestroy, untrack } from 'svelte';
 	import Cover from '../../../lib/components/Cover.svelte';
@@ -92,7 +92,7 @@
 								<p class="muted status">On your {SHELF_LABELS[data.onShelf[r.olWorkId]]} shelf</p>
 							{/if}
 						</div>
-						<form method="POST" action="?q={encodeURIComponent(data.q)}&/add" use:enhance={keepChoice}>
+						<form method="POST" action="?q={encodeURIComponent(data.q)}&/add" use:pending={keepChoice}>
 							<input type="hidden" name="q" value={data.q} />
 							<input type="hidden" name="olWorkId" value={r.olWorkId} />
 							<label>
@@ -114,7 +114,7 @@
 	<section class="manual card" aria-labelledby="manual-heading">
 		<h2 id="manual-heading">Not finding it? Add it by hand.</h2>
 		{#if form?.manualMessage}<p class="error" role="alert">{form.manualMessage}</p>{/if}
-		<form class="stack" method="POST" action="?/manual" use:enhance>
+		<form class="stack" method="POST" action="?/manual" use:pending>
 			<label>Title <input name="title" required maxlength="200" value={form?.title ?? ''} /></label>
 			<label>Author <input name="author" required maxlength="100" value={form?.author ?? ''} /></label>
 			<label>

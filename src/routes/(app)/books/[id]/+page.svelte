@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { pending } from '../../../../lib/pending';
 	import Cover from '../../../../lib/components/Cover.svelte';
 	import Stars from '../../../../lib/components/Stars.svelte';
 	import { formatDate, SHELF_LABELS } from '../../../../lib/format';
@@ -41,7 +41,7 @@
 	<section class="shelf" aria-labelledby="shelf-heading">
 		<h2 id="shelf-heading" class="label">Your shelf</h2>
 		<div class="actions">
-			<form class="segmented" method="POST" action="?/shelf" use:enhance>
+			<form class="segmented" method="POST" action="?/shelf" use:pending>
 				{#each statuses as s (s)}
 					<button
 						name="status"
@@ -52,7 +52,7 @@
 				{/each}
 			</form>
 			{#if data.status}
-				<form method="POST" action="?/remove" use:enhance>
+				<form method="POST" action="?/remove" use:pending>
 					<button class="link-button">Remove from shelves</button>
 				</form>
 			{/if}
@@ -65,7 +65,7 @@
 			method="POST"
 			action="?/review"
 			aria-labelledby="review-heading"
-			use:enhance
+			use:pending
 		>
 			<h2 id="review-heading">Your review</h2>
 			{#if data.reviewPrompt}
@@ -102,7 +102,7 @@
 			</div>
 		</form>
 		{#if data.mine}
-			<form class="delete" method="POST" action="?/deleteReview" use:enhance>
+			<form class="delete" method="POST" action="?/deleteReview" use:pending>
 				<button class="link-button">Delete review</button>
 			</form>
 		{/if}

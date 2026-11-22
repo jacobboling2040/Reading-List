@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { pending } from '../../../lib/pending';
 	import { formatDate } from '../../../lib/format';
 	import type { PageProps } from './$types';
 
@@ -30,7 +30,7 @@
 	<p class="page-intro">Links work once and expire after 7 days.</p>
 	{#if form?.message}<p class="callout error" role="alert">{form.message}</p>{/if}
 
-	<form method="POST" action="?/create" use:enhance>
+	<form method="POST" action="?/create" use:pending>
 		<button>Create invite link</button>
 	</form>
 
@@ -66,7 +66,7 @@
 				<li class="card pending" data-token={inv.token}>
 					<code>{inv.url}</code>
 					<span class="muted">Expires {formatDate(inv.expiresAt)}</span>
-					<form method="POST" action="?/revoke" use:enhance>
+					<form method="POST" action="?/revoke" use:pending>
 						<input type="hidden" name="token" value={inv.token} />
 						<button class="button-quiet">Revoke</button>
 					</form>

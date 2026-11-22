@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { pending } from '../../../lib/pending';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -21,7 +21,7 @@
 					<a href="/u/{m.username}">
 						<strong>{m.displayName}</strong> <span class="muted">@{m.username}</span>
 					</a>
-					<form method="POST" action={m.following ? '?/unfollow' : '?/follow'} use:enhance>
+					<form method="POST" action={m.following ? '?/unfollow' : '?/follow'} use:pending>
 						<input type="hidden" name="userId" value={m.id} />
 						<button class={m.following ? 'button-quiet' : ''}>
 							{m.following ? 'Unfollow' : 'Follow'}
