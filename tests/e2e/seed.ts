@@ -4,7 +4,10 @@ import * as schema from '../../src/lib/server/db/schema';
 import type { Db } from '../../src/lib/server/db/client';
 import { createInvite, createUser } from '../../src/lib/server/users';
 
-export const E2E_DB_URL = 'file:test-e2e.db';
+import { E2E_PORT } from './ports';
+
+export const E2E_DB_FILE = E2E_PORT === 5174 ? 'test-e2e.db' : `test-e2e-${E2E_PORT}.db`;
+export const E2E_DB_URL = `file:${E2E_DB_FILE}`;
 export const ADMIN = {
 	username: 'admin',
 	displayName: 'Admin',
