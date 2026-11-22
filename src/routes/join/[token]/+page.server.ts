@@ -1,8 +1,13 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import { getDb } from '../../../lib/server/db/client';
 import { getInvite, redeemInvite } from '../../../lib/server/users';
-import { UserError } from '../../../lib/server/errors';
-import { createSession, setSessionCookie } from '../../../lib/server/auth/session';
+import { withUserErrors } from '../../../lib/server/form-input';
+import {
+	createSession,
+	invalidateSession,
+	SESSION_COOKIE,
+	setSessionCookie
+} from '../../../lib/server/auth/session';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => ({
@@ -16,17 +21,17 @@ export const actions: Actions = {
 		const displayName = String(form.get('displayName') ?? '');
 		const password = String(form.get('password') ?? '');
 		const db = getDb();
-		let userId: number;
-		try {
-			userId = await redeemInvite(db, params.token, {
-				username,
-				displayName,
-				password
-			});
-		} catch (e) {
-			if (e instanceof UserError) return fail(400, { message: e.message, username, displayName });
-			throw e;
-		}
+		let userId = 0;
+		const failed = await withUserErrors(
+			async () => {
+				userId = await redeemInvite(db, params.token, { username, displayName, password });
+			},
+			{ username, displayName }
+		);
+		if (failed) return failed;
+		// Joining while signed in: end the old session before issuing the new one.
+		const previous = cookies.get(SESSION_COOKIE);
+		if (previous) await invalidateSession(db, previous);
 		const { token, expiresAt } = await createSession(db, userId);
 		setSessionCookie(cookies, token, expiresAt);
 		redirect(303, '/people');

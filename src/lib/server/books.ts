@@ -61,7 +61,8 @@ export async function searchOpenLibrary(
 			});
 		}
 		return results;
-	} catch {
+	} catch (err) {
+		console.error('Open Library search failed', err);
 		throw new UserError(UNAVAILABLE);
 	}
 }

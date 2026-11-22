@@ -1,4 +1,4 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { getDb } from '../../../../lib/server/db/client';
 import { getBook } from '../../../../lib/server/books';
 import { getShelfStatus, removeFromShelf, setShelf } from '../../../../lib/server/shelves';
@@ -8,8 +8,7 @@ import {
 	listToReadMembers,
 	saveReview
 } from '../../../../lib/server/reviews';
-import { UserError } from '../../../../lib/server/errors';
-import { formStatus, routeId } from '../../../../lib/server/form-input';
+import { formStatus, routeId, withUserErrors } from '../../../../lib/server/form-input';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
@@ -36,22 +35,11 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
 	};
 };
 
-/** Runs `run`, turning a UserError into a form failure; returns null on success. */
-async function attempt(run: () => Promise<void>) {
-	try {
-		await run();
-		return null;
-	} catch (e) {
-		if (e instanceof UserError) return fail(400, { message: e.message });
-		throw e;
-	}
-}
-
 export const actions: Actions = {
 	shelf: async ({ params, request, locals }) => {
 		const bookId = routeId(params.id);
 		const form = await request.formData();
-		const failed = await attempt(() =>
+		const failed = await withUserErrors(() =>
 			setShelf(getDb(), locals.user!.id, bookId, formStatus(form))
 		);
 		if (failed) return failed;
@@ -60,14 +48,16 @@ export const actions: Actions = {
 	},
 	remove: async ({ params, locals }) => {
 		const bookId = routeId(params.id);
-		return (await attempt(() => removeFromShelf(getDb(), locals.user!.id, bookId))) ?? undefined;
+		return (
+			(await withUserErrors(() => removeFromShelf(getDb(), locals.user!.id, bookId))) ?? undefined
+		);
 	},
 	review: async ({ params, request, locals }) => {
 		const bookId = routeId(params.id);
 		const form = await request.formData();
 		const rating = Number(form.get('rating'));
 		const body = String(form.get('body') ?? '');
-		const failed = await attempt(() =>
+		const failed = await withUserErrors(() =>
 			saveReview(getDb(), locals.user!.id, bookId, { rating, body })
 		);
 		if (failed) return failed;
@@ -75,6 +65,8 @@ export const actions: Actions = {
 	},
 	deleteReview: async ({ params, locals }) => {
 		const bookId = routeId(params.id);
-		return (await attempt(() => deleteReview(getDb(), locals.user!.id, bookId))) ?? undefined;
+		return (
+			(await withUserErrors(() => deleteReview(getDb(), locals.user!.id, bookId))) ?? undefined
+		);
 	}
 };

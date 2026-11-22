@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { and, eq, gt, isNull, or, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, ne, or, sql } from 'drizzle-orm';
 import type { Db } from './db/client';
 import {
 	books,
@@ -92,6 +92,15 @@ export async function createUser(
 	return insertUser(db, { ...rest, passwordHash: await hashPassword(password) });
 }
 
+const INVALID_RESET = 'This reset link has expired or was already used.';
+
+/** An invite only works while the member who created it is still active. */
+const creatorActive = sql`${invites.createdBy} IN (SELECT id FROM users WHERE deactivated_at IS NULL)`;
+
+/** The conditions under which an invite can still be redeemed. */
+const invitePending = (now: number) =>
+	and(isNull(invites.usedAt), isNull(invites.revokedAt), gt(invites.expiresAt, now), creatorActive);
+
 export async function createInvite(db: Db, createdBy: number, now = Date.now()): Promise<string> {
 	const token = randomBytes(32).toString('base64url');
 	await db.insert(invites).values({
@@ -107,14 +116,7 @@ export async function listInvites(db: Db, createdBy: number, now = Date.now()) {
 	return db
 		.select()
 		.from(invites)
-		.where(
-			and(
-				eq(invites.createdBy, createdBy),
-				isNull(invites.usedAt),
-				isNull(invites.revokedAt),
-				gt(invites.expiresAt, now)
-			)
-		)
+		.where(and(eq(invites.createdBy, createdBy), invitePending(now)))
 		.orderBy(invites.createdAt);
 }
 
@@ -130,7 +132,7 @@ export async function listAllPendingInvites(db: Db, now = Date.now()) {
 		})
 		.from(invites)
 		.innerJoin(users, eq(users.id, invites.createdBy))
-		.where(and(isNull(invites.usedAt), isNull(invites.revokedAt), gt(invites.expiresAt, now)))
+		.where(invitePending(now))
 		.orderBy(invites.createdAt);
 }
 
@@ -158,14 +160,7 @@ export async function getInvite(
 	const [row] = await db
 		.select({ token: invites.token })
 		.from(invites)
-		.where(
-			and(
-				eq(invites.token, token),
-				isNull(invites.usedAt),
-				isNull(invites.revokedAt),
-				gt(invites.expiresAt, now)
-			)
-		);
+		.where(and(eq(invites.token, token), invitePending(now)));
 	return { valid: !!row };
 }
 
@@ -186,15 +181,7 @@ export async function redeemInvite(
 			const claimed = await tx
 				.update(invites)
 				.set({ usedAt: now })
-				.where(
-					and(
-						eq(invites.token, token),
-						isNull(invites.usedAt),
-						isNull(invites.revokedAt),
-						gt(invites.expiresAt, now),
-						sql`${invites.createdBy} IN (SELECT id FROM users WHERE deactivated_at IS NULL)`
-					)
-				);
+				.where(and(eq(invites.token, token), invitePending(now)));
 			if (claimed.rowsAffected === 0) throw new UserError(INVALID_INVITE);
 			const [inv] = await tx
 				.select({ createdBy: invites.createdBy })
@@ -255,6 +242,21 @@ export async function createPasswordReset(
 	return token;
 }
 
+/** Whether a reset link can still be used (known, unexpired, unused). */
+export async function isResetTokenValid(db: Db, token: string, now = Date.now()): Promise<boolean> {
+	const [row] = await db
+		.select({ userId: passwordResets.userId })
+		.from(passwordResets)
+		.where(
+			and(
+				eq(passwordResets.tokenHash, sha256(token)),
+				isNull(passwordResets.usedAt),
+				gt(passwordResets.expiresAt, now)
+			)
+		);
+	return !!row;
+}
+
 export async function resetPassword(
 	db: Db,
 	token: string,
@@ -277,7 +279,7 @@ export async function resetPassword(
 				)
 			);
 		if (claimed.rowsAffected === 0) {
-			throw new UserError('This reset link has expired or was already used.');
+			throw new UserError(INVALID_RESET);
 		}
 		const [row] = await tx
 			.select({ userId: passwordResets.userId })
@@ -334,6 +336,15 @@ export async function setDeactivated(db: Db, userId: number, deactivated: boolea
 }
 
 export async function deleteAccount(db: Db, userId: number): Promise<void> {
+	const [me] = await db.select({ isAdmin: users.isAdmin }).from(users).where(eq(users.id, userId));
+	if (me?.isAdmin) {
+		const [other] = await db
+			.select({ id: users.id })
+			.from(users)
+			.where(and(eq(users.isAdmin, true), isNull(users.deactivatedAt), ne(users.id, userId)))
+			.limit(1);
+		if (!other) throw new UserError("You're the only admin, so this account can't be deleted.");
+	}
 	// Explicit deletes: foreign-key cascades aren't guaranteed on every connection.
 	await db.transaction(async (tx) => {
 		await tx.delete(sessions).where(eq(sessions.userId, userId));

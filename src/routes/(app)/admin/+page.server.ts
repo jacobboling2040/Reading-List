@@ -1,9 +1,9 @@
-import { fail } from '@sveltejs/kit';
 import { asc, eq } from 'drizzle-orm';
 import { getDb } from '../../../lib/server/db/client';
 import { users } from '../../../lib/server/db/schema';
 import { requireAdmin } from '../../../lib/server/auth/guard';
 import { UserError } from '../../../lib/server/errors';
+import { formId, withUserErrors } from '../../../lib/server/form-input';
 import {
 	createPasswordReset,
 	listAllPendingInvites,
@@ -28,30 +28,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return { members, invites: await listAllPendingInvites(db) };
 };
 
-async function userId(request: Request): Promise<{ form: FormData; id: number }> {
-	const form = await request.formData();
-	const raw = String(form.get('userId') ?? '');
-	const id = /^\d+$/.test(raw) ? Number(raw) : 0;
-	if (!Number.isSafeInteger(id) || id < 1) throw new UserError('Unknown member.');
-	const [member] = await getDb().select({ id: users.id }).from(users).where(eq(users.id, id));
-	if (!member) throw new UserError('Unknown member.');
-	return { form, id };
-}
+const UNKNOWN_MEMBER = 'Unknown member.';
 
-async function run<T>(fn: () => Promise<T>) {
-	try {
-		return await fn();
-	} catch (e) {
-		if (e instanceof UserError) return fail(400, { message: e.message });
-		throw e;
-	}
+async function memberId(request: Request): Promise<number> {
+	const id = formId(await request.formData(), 'userId', UNKNOWN_MEMBER);
+	const [member] = await getDb().select({ id: users.id }).from(users).where(eq(users.id, id));
+	if (!member) throw new UserError(UNKNOWN_MEMBER);
+	return id;
 }
 
 export const actions: Actions = {
 	deactivate: ({ locals, request }) => {
 		const admin = requireAdmin(locals);
-		return run(async () => {
-			const { id } = await userId(request);
+		return withUserErrors(async () => {
+			const id = await memberId(request);
 			if (id === admin.id) throw new UserError("You can't deactivate yourself.");
 			await setDeactivated(getDb(), id, true);
 			return { message: null };
@@ -59,16 +49,16 @@ export const actions: Actions = {
 	},
 	reactivate: ({ locals, request }) => {
 		requireAdmin(locals);
-		return run(async () => {
-			const { id } = await userId(request);
+		return withUserErrors(async () => {
+			const id = await memberId(request);
 			await setDeactivated(getDb(), id, false);
 			return { message: null };
 		});
 	},
 	reset: ({ locals, request, url }) => {
 		requireAdmin(locals);
-		return run(async () => {
-			const { id } = await userId(request);
+		return withUserErrors(async () => {
+			const id = await memberId(request);
 			const token = await createPasswordReset(getDb(), id);
 			return {
 				message: null,
@@ -79,7 +69,7 @@ export const actions: Actions = {
 	},
 	revoke: ({ locals, request }) => {
 		const admin = requireAdmin(locals);
-		return run(async () => {
+		return withUserErrors(async () => {
 			const form = await request.formData();
 			await revokeInvite(getDb(), String(form.get('token') ?? ''), admin.id);
 			return { message: null };

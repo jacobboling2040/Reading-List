@@ -115,3 +115,48 @@ test('reset link sets a new password; new works, old fails', async ({ page }) =>
 	await page.getByRole('button', { name: 'Log in' }).click();
 	await expect(page).toHaveURL(/\/$/);
 });
+
+test('an unusable reset link shows the expired message instead of the form', async ({ page }) => {
+	await page.goto('/reset/not-a-real-token');
+	await expect(page.getByText('This reset link has expired or was already used.')).toBeVisible();
+	await expect(page.getByLabel('New password')).toHaveCount(0);
+
+	const username = uniq();
+	const token = await withE2eDb(async (db) => {
+		const id = await createUser(db, {
+			username,
+			displayName: 'Once',
+			password: 'old-password-123'
+		});
+		return createPasswordReset(db, id);
+	});
+	await page.goto(`/reset/${token}`);
+	await page.getByLabel('New password').fill('new-password-456');
+	await page.getByRole('button', { name: 'Set password' }).click();
+	await expect(page).toHaveURL(/\/login\?notice=reset$/);
+	await page.goto(`/reset/${token}`);
+	await expect(page.getByText('This reset link has expired or was already used.')).toBeVisible();
+	await expect(page.getByLabel('New password')).toHaveCount(0);
+});
+
+test('joining while signed in ends the old session', async ({ page, context }) => {
+	await page.goto('/login');
+	await page.getByLabel('Username').fill(ADMIN.username);
+	await page.getByLabel('Password').fill(ADMIN.password);
+	await page.getByRole('button', { name: 'Log in' }).click();
+	await expect(page).toHaveURL(/\/$/);
+	const oldCookies = await context.cookies();
+	const token = await newInvite();
+	await page.goto(`/join/${token}`);
+	await page.waitForLoadState('networkidle');
+	await page.getByLabel('Username').fill(uniq());
+	await page.getByLabel('Display name').fill('Switcher');
+	await page.getByLabel('Password').fill('a-long-password-1');
+	await page.getByRole('button', { name: 'Join' }).click();
+	await expect(page).toHaveURL(/\/people$/);
+
+	await context.clearCookies();
+	await context.addCookies(oldCookies);
+	await page.goto('/people');
+	await expect(page).toHaveURL(/\/login/);
+});

@@ -25,6 +25,7 @@
 			alt={title}
 			loading="lazy"
 			decoding="async"
+			referrerpolicy="no-referrer"
 			onerror={() => (failed = true)}
 		/>
 	{:else}

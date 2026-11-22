@@ -12,6 +12,7 @@ import {
   isFollowing,
   listMembers,
   getProfile,
+  findActiveUserId,
 } from "../../src/lib/server/follows";
 
 let db: Db;
@@ -75,6 +76,14 @@ describe("follows", () => {
     expect(await getProfile(db, "nobody")).toBeNull();
     await db.update(users).set({ deactivatedAt: 5 }).where(eq(users.id, a));
     expect(await getProfile(db, "a")).toBeNull();
+  });
+
+  it("findActiveUserId is case-insensitive and skips deactivated", async () => {
+    const a = await mkUser("a");
+    expect(await findActiveUserId(db, "A")).toBe(a);
+    expect(await findActiveUserId(db, "zzz")).toBeNull();
+    await db.update(users).set({ deactivatedAt: 5 }).where(eq(users.id, a));
+    expect(await findActiveUserId(db, "a")).toBeNull();
   });
 
   it("profile counts match shelves", async () => {

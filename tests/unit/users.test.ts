@@ -23,6 +23,8 @@ import {
 	createUser,
 	deleteAccount,
 	getInvite,
+	isResetTokenValid,
+	listAllPendingInvites,
 	listInvites,
 	redeemInvite,
 	resetPassword,
@@ -149,6 +151,52 @@ describe('invite from deactivated creator', () => {
 		await expect(redeemInvite(db, token, signup('pat'))).rejects.toThrow(
 			'This invite link has expired or was already used.'
 		);
+	});
+});
+
+describe('invites from a deactivated creator are hidden everywhere', () => {
+	it('getInvite, listInvites and listAllPendingInvites ignore them; reactivating restores', async () => {
+		const sam = await createUser(db, signup('sam'));
+		const token = await createInvite(db, sam);
+		expect(await getInvite(db, token)).toEqual({ valid: true });
+		expect(await listInvites(db, sam)).toHaveLength(1);
+		expect((await listAllPendingInvites(db)).map((i) => i.token)).toContain(token);
+
+		await setDeactivated(db, sam, true);
+		expect(await getInvite(db, token)).toEqual({ valid: false });
+		expect(await listInvites(db, sam)).toHaveLength(0);
+		expect((await listAllPendingInvites(db)).map((i) => i.token)).not.toContain(token);
+
+		await setDeactivated(db, sam, false);
+		expect(await getInvite(db, token)).toEqual({ valid: true });
+	});
+});
+
+describe('isResetTokenValid', () => {
+	it('is true for a fresh token, false for unknown, expired and used ones', async () => {
+		const sam = await createUser(db, signup('sam'));
+		const now = Date.now();
+		const token = await createPasswordReset(db, sam, now);
+		expect(await isResetTokenValid(db, token, now)).toBe(true);
+		expect(await isResetTokenValid(db, 'nope', now)).toBe(false);
+		expect(await isResetTokenValid(db, token, now + 2 * DAY)).toBe(false);
+		await resetPassword(db, token, 'a-brand-new-password', now);
+		expect(await isResetTokenValid(db, token, now)).toBe(false);
+	});
+});
+
+describe('deleting the last admin', () => {
+	it('is refused, but allowed once another active admin exists', async () => {
+		await expect(deleteAccount(db, adminId)).rejects.toThrow(
+			"You're the only admin, so this account can't be deleted."
+		);
+		expect(await db.select().from(users).where(eq(users.id, adminId))).toHaveLength(1);
+		const second = await createUser(db, { ...signup('second'), isAdmin: true });
+		await setDeactivated(db, second, true);
+		await expect(deleteAccount(db, adminId)).rejects.toThrow(UserError);
+		await setDeactivated(db, second, false);
+		await deleteAccount(db, adminId);
+		expect(await db.select().from(users).where(eq(users.id, adminId))).toHaveLength(0);
 	});
 });
 

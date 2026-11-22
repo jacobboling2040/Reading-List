@@ -7,6 +7,7 @@ import {
 	type SearchResult
 } from '../../../lib/server/books';
 import { UserError } from '../../../lib/server/errors';
+import { withUserErrors } from '../../../lib/server/form-input';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -31,22 +32,21 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const q = String(form.get('q') ?? '');
 		const olWorkId = String(form.get('olWorkId') ?? '');
-		let bookId: number;
-		try {
+		let bookId = 0;
+		const failed = await withUserErrors(async () => {
 			const match = (await searchOpenLibrary(q)).find((r) => r.olWorkId === olWorkId);
-			if (!match) throw new UserError("That book isn't in the results any more. Try searching again.");
+			if (!match)
+				throw new UserError("That book isn't in the results any more. Try searching again.");
 			bookId = await upsertOpenLibraryBook(getDb(), match, locals.user!.id);
-		} catch (e) {
-			if (e instanceof UserError) return fail(400, { message: e.message });
-			throw e;
-		}
+		});
+		if (failed) return failed;
 		redirect(303, `/books/${bookId}`);
 	},
 	manual: async ({ request, locals }) => {
 		const form = await request.formData();
 		const title = String(form.get('title') ?? '');
 		const author = String(form.get('author') ?? '');
-		let bookId: number;
+		let bookId = 0;
 		try {
 			bookId = await addManualBook(getDb(), { title, author }, locals.user!.id);
 		} catch (e) {
