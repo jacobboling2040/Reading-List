@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { SHELF_LABELS } from '../../../../lib/format';
 	import { fade } from 'svelte/transition';
+	import { SHELF_LABELS } from '../../../../lib/format';
 	import BookCard from '../../../../lib/components/BookCard.svelte';
 	import ShelfTabs from '../../../../lib/components/ShelfTabs.svelte';
 	import Stars from '../../../../lib/components/Stars.svelte';
@@ -10,8 +10,14 @@
 	let { data, form }: PageProps = $props();
 	const p = $derived(data.profile);
 	let tab = $state(data.tab);
+	// Re-sync only when the server's tab changes; invalidation after a form action
+	// re-runs load with the original URL and must not undo a client-side tab switch.
+	let serverTab = data.tab;
 	$effect(() => {
-		tab = data.tab;
+		if (data.tab !== serverTab) {
+			serverTab = data.tab;
+			tab = data.tab;
+		}
 	});
 	const fadeMs = () =>
 		typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -49,19 +55,19 @@
 
 	{#if tab}
 		{#key tab}
-		<section in:fade={{ duration: fadeMs() }}>
-			<h2>{SHELF_LABELS[tab]}</h2>
-			{#if data.shelves[tab].length === 0}
-				<p class="muted">Nothing here yet.</p>
-			{:else}
-				<ul class="list">
-					{#each data.shelves[tab] as book (book.id)}
-						<li><BookCard {book} size="sm" /></li>
-					{/each}
-				</ul>
-			{/if}
-			<p><a href="/u/{p.username}">Back to profile</a></p>
-		</section>
+			<section in:fade={{ duration: fadeMs() }}>
+				<h2>{SHELF_LABELS[tab]}</h2>
+				{#if data.shelves[tab].length === 0}
+					<p class="muted">Nothing here yet.</p>
+				{:else}
+					<ul class="list">
+						{#each data.shelves[tab] as book (book.id)}
+							<li><BookCard {book} size="sm" /></li>
+						{/each}
+					</ul>
+				{/if}
+				<p><a href="/u/{p.username}">Back to profile</a></p>
+			</section>
 		{/key}
 	{:else}
 		<section>

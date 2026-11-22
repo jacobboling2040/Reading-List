@@ -9,8 +9,14 @@
 	let { data, form }: PageProps = $props();
 
 	let tab = $state(data.tab);
+	// Re-sync only when the server's tab changes; invalidation after a form action
+	// re-runs load with the original URL and must not undo a client-side tab switch.
+	let serverTab = data.tab;
 	$effect(() => {
-		tab = data.tab;
+		if (data.tab !== serverTab) {
+			serverTab = data.tab;
+			tab = data.tab;
+		}
 	});
 	const books = $derived(data.shelves[tab]);
 	const fadeMs = () =>
