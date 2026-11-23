@@ -114,6 +114,23 @@ test('submitting shows a busy button until done', async ({ page }) => {
 	await expect(save).toBeEnabled();
 });
 
+test('a keyboard submit keeps focus on the button', async ({ page }) => {
+	await logIn(page, await newMember());
+	await page.goto('/settings');
+	await page.waitForLoadState('networkidle');
+	await page.route('**/settings?/name', async (route) => {
+		await new Promise((r) => setTimeout(r, 500));
+		await route.continue();
+	});
+	const save = page.getByRole('button', { name: 'Save name' });
+	await save.focus();
+	await page.keyboard.press('Enter');
+	await expect(save).toHaveAttribute('aria-busy', 'true');
+	await expect(page.getByText('Name saved.')).toBeVisible();
+	await expect(save).not.toHaveAttribute('aria-busy', 'true');
+	await expect(save).toBeFocused();
+});
+
 test('a landing search does not close the sidebar', async ({ page }) => {
 	await logIn(page, await newMember());
 	await page.goto('/search');
