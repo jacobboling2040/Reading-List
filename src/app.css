@@ -431,6 +431,11 @@ button:active,
 	filter: none;
 }
 
+/* The hover rule's `filter: none` would otherwise cancel the pressed dip. */
+.button-quiet:active {
+	filter: brightness(0.94);
+}
+
 .link-button {
 	background: none;
 	border: 0;
