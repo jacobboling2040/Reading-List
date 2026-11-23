@@ -103,6 +103,23 @@ test('adding from search shelves the book and stays on search', async ({ page })
 	await expect(result.getByText('On your Reading shelf')).toBeVisible();
 });
 
+test('adding from a cached search keeps the Added row', async ({ page }) => {
+	const me = await newMember('Cached');
+	await logIn(page, me.username);
+	// Warm the search cache so the Search click answers before the typing debounce fires.
+	await page.goto('/search?q=earthsea');
+	await page.goto('/search');
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('searchbox', { name: 'Find a book' }).fill('earthsea');
+	await page.getByRole('button', { name: 'Search' }).click();
+	const result = page.getByRole('listitem').filter({ hasText: 'A Wizard of Earthsea' });
+	await result.getByRole('button', { name: 'Add A Wizard of Earthsea' }).click();
+	await expect(result.getByText('Added to To-read')).toBeVisible();
+	// Outlast the 300ms typing debounce: a late search navigation would clear the Added row.
+	await page.waitForTimeout(600);
+	await expect(result.getByText('Added to To-read')).toBeVisible();
+});
+
 test('search updates as you type', async ({ page }) => {
 	const me = await newMember('Typer');
 	await logIn(page, me.username);
