@@ -33,6 +33,19 @@ test('buttons visibly react to a press', async ({ page }) => {
 	await page.mouse.up();
 });
 
+test('the busy spinner does not resize its button', async ({ page }) => {
+	const me = await newMember('Waiter');
+	await logIn(page, me.username);
+	await page.goto('/search');
+	// The Search button sizes to its label, unlike the full-width buttons in stacked forms.
+	const button = page.getByRole('button', { name: 'Search' });
+	const idle = await button.boundingBox();
+	await button.evaluate((el) => el.setAttribute('aria-busy', 'true'));
+	const busy = await button.boundingBox();
+	expect(busy!.width).toBeCloseTo(idle!.width, 0);
+	expect(busy!.height).toBeCloseTo(idle!.height, 0);
+});
+
 test('reduced motion turns transitions off', async ({ page }) => {
 	await page.emulateMedia({ reducedMotion: 'reduce' });
 	await page.goto('/login');

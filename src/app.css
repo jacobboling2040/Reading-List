@@ -557,19 +557,24 @@ a {
 	transition: color var(--dur-fast) var(--ease);
 }
 
+/* The ring overlays the hidden label so the button keeps its size while busy. Hiding the
+   label with text-fill (not colour) keeps currentColor for the ring, and the name stays readable
+   to assistive tech. */
 button[aria-busy='true'] {
+	position: relative;
 	opacity: 0.7;
 	cursor: progress;
+	-webkit-text-fill-color: transparent;
 }
 
 /* Under reduced motion the animation duration is 0s, so the ring stays static. */
 button[aria-busy='true']::after {
 	content: '';
-	display: inline-block;
+	position: absolute;
+	inset: 0;
+	margin: auto;
 	width: 0.9em;
 	height: 0.9em;
-	margin-left: 0.5em;
-	vertical-align: -0.1em;
 	border: 2px solid currentColor;
 	border-right-color: transparent;
 	border-radius: 50%;
