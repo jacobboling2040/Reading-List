@@ -24,6 +24,9 @@ export const pending: Action<HTMLFormElement, SubmitFunction | undefined> = (for
 		if (cancelled) return inner;
 
 		const submitter = input.submitter as HTMLButtonElement | null;
+		// Disabling the focused submitter drops focus to <body>; remember it so keyboard and
+		// screen-reader users get their place back once the form settles.
+		const hadFocus = !!submitter && document.activeElement === submitter;
 		form.setAttribute('data-pending', '');
 		submitter?.setAttribute('aria-busy', 'true');
 		if (submitter) submitter.disabled = true;
@@ -36,6 +39,9 @@ export const pending: Action<HTMLFormElement, SubmitFunction | undefined> = (for
 				form.removeAttribute('data-pending');
 				submitter?.removeAttribute('aria-busy');
 				if (submitter) submitter.disabled = false;
+				// Only when nothing else took focus meanwhile (e.g. a review form focusing its stars).
+				const lost = !document.activeElement || document.activeElement === document.body;
+				if (hadFocus && lost && submitter?.isConnected) submitter.focus();
 			}
 		};
 	};
