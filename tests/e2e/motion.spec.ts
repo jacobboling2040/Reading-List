@@ -33,6 +33,19 @@ test('buttons visibly react to a press', async ({ page }) => {
 	await page.mouse.up();
 });
 
+test('quiet buttons darken when pressed', async ({ page }) => {
+	const me = await newMember('QuietPresser');
+	await logIn(page, me.username);
+	await page.goto(`/u/${me.username}`);
+	const button = page.getByRole('link', { name: 'Edit your settings' });
+	await button.hover();
+	await page.mouse.down();
+	await expect
+		.poll(() => button.evaluate((el) => getComputedStyle(el).filter))
+		.toContain('brightness(0.94)');
+	await page.mouse.up();
+});
+
 test('reduced motion turns transitions off', async ({ page }) => {
 	await page.emulateMedia({ reducedMotion: 'reduce' });
 	await page.goto('/login');
