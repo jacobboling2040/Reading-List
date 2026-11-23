@@ -30,10 +30,12 @@
 		if (q.length === 1) return;
 		// SvelteKit drops the result of a navigation superseded by a newer one, so a slow
 		// older response can't replace newer results.
-		timer = setTimeout(
-			() => goto('?q=' + encodeURIComponent(q), { replace: true, reset: false }),
-			300
-		);
+		timer = setTimeout(() => {
+			// Pressing Search can land these results before the debounce fires. Navigating again
+			// would clear `form`, wiping an "Added to …" row the member just got.
+			if (q === data.q) return;
+			goto('?q=' + encodeURIComponent(q), { replace: true, reset: false });
+		}, 300);
 	}
 
 	// Keep the chosen shelf in the select after an add instead of snapping back to the first option.
